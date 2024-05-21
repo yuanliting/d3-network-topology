@@ -6,7 +6,7 @@
 </template>
 
 <script>
-import Index from './views/index.vue'
+import Index from './views/D3Index/index.vue'
 // import ReadJsonD3 from './views/readJsonD3.vue'
 export default {
   name: 'App',

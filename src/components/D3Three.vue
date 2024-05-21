@@ -15,7 +15,7 @@
   <script>
   import * as $ from 'jquery'
   import * as d3 from 'd3'
-  import svgExport from '../views/svgExport'
+  import svgExport from '@/utils/svgExport'
   
   export default {
     name: 'ProDThree',
@@ -206,7 +206,7 @@
           }
         }
         if (type === 'node' && this.tool === 'pointer') {
-          console.log('他点击节点了，传来了id', id)
+          
           const allLinks = this.simulation.force('link').links()
           console.log('线获取', allLinks)
           if (allLinks && Array.isArray(allLinks) && allLinks.length > 0) {
@@ -937,4 +937,4 @@
     background-color: #1aad8d !important;
     border-color: #1aad8d !important;
   }
-  </style>
+  </style>../utils/svgExport

@@ -15,7 +15,7 @@
 <script>
 import * as $ from 'jquery'
 import * as d3 from 'd3'
-import svgExport from '../views/svgExport'
+import svgExport from '@/utils/svgExport'
 
 export default {
   name: 'ProDThree',
@@ -280,53 +280,22 @@ export default {
       if (node.fx || node.fy) cssClass.push('pinned')
       return cssClass
     },
-    addLinkClass(type, id) {
-      if (type === 'link' && this.tool === 'pointer') {
+    selectNode(d) {
+      d3.select(`#${d.id}`)._groups[0][0].classList.add('selected')
+    },
+    selectLink(id) {
+      if (this.tool === 'pointer') {
         const lin = d3.select(`#${id}`);
-        const mar = d3.select(`#marker-${id}}`);
         if (lin) {
           lin.classed('selected', true)
         }
-        if (mar) {
-          mar.classed('selected', true)
-        }
-      }
-      if (type === 'node' && this.tool === 'pointer') {
-        console.log('他点击节点了，传来了id', id)
-        const allLinks = this.simulation.force('link').links()
-        console.log('线获取', allLinks)
-        if (allLinks && Array.isArray(allLinks) && allLinks.length > 0) {
-          for (let i = 0; i < allLinks.length; i++) {
-            const element = allLinks[i];
-            // const link
-            if (id === element.source.id || id === element.target.id) {
-              // 线的选中
-              if (d3.select(`#${element.source.id}-${element.target.id}`)) {
-                d3.select(`#${element.source.id}-${element.target.id}`).classed('selected', true)
-                d3.select(`#marker-${element.source.id}-${element.target.id}`).classed('selected', true)
-              }
-            }
+        this.svg.select('defs').selectAll('marker')
+        .each(function (m) {
+          if (`${m.source.id}-${m.target.id}` === id) {
+            d3.select(this).classed('selected', true)
           }
-        }
-        if (allLinks._groups && allLinks._groups.length > 0 && allLinks._groups[0].length > 0) {
-          for (let i = 0; i < allLinks._groups[0].length; i++) {
-            const element = allLinks._groups[0][i].__data__;
-            if (id === element.source.id || id === element.target.id) {
-              console.log('让我看看这是那个', `#${element.source.id}-${element.target.id}`)
-              const link = document.getElementById(`${element.source.id}-${element.target.id}`)
-              const marker = d3.select(`#marker-${element.source.id}-${element.target.id}`)
-              console.log('是那个线了', link)
-              if (marker && link) {
-                link.classList.add('selected')
-                marker.classed('selected', true)
-              }
-            }
-          }
-        }
+        })
       }
-    },
-    cancleLinkClass() {
-
     },
     removeNode(nodeId) {
       console.log('删除的node', nodeId)
@@ -366,7 +335,7 @@ export default {
       const node = document.getElementById(`${nodeId}`)
       const nodeClassName = this.nodeClass(node, []).join(' ')
       if (nodeClassName) {
-        node.classList.remove(this.nodeClassName)
+        node.classList.remove('selected')
       }
     },
     cancleLinkSelect(linkId) {
@@ -482,7 +451,6 @@ export default {
         .on('click', function ($event, d) {
           console.log('你点击线了', d)
           vm.$emit("linkClick", $event, d)
-          vm.addLinkClass('link', `${d.source.id}-${d.target.id}`)
         })
         .on('mouseover', function () {
           const id = d3.select(this).attr('marker-end').split('url(#marker-')[1].split(')')[0]
@@ -538,19 +506,7 @@ export default {
         .attr("transform", function (d) {
           return "translate(" + d.x + "," + d.y + ")";
         }).on('click', function ($event, d) {
-          console.log(vm.tool, '---你点击了节点---', d)
           vm.$emit("nodeClick", $event, d)
-          if (vm.tool === 'pointer') {
-            this.nodeClassName = vm.nodeClass(d, []).join(' ')
-            // 没有选中就选中，选中就取消选中
-            if (d3.select(this).node().classList.contains(this.nodeClassName)) {
-              d3.select(this).classed(this.nodeClassName, false)
-              vm.addLinkClass('node', d.id)
-            } else {
-              d3.select(this).classed(this.nodeClassName, true)
-              vm.addLinkClass('node', d.id)
-            }
-          }
         }).on('mouseover', function () {
           d3.select(this).classed('focus focusing', true)
         })
@@ -631,7 +587,6 @@ export default {
       const svgImgPromise = []
       for (const key in this.svgMap) {
         const element = this.svgMap[key];
-        console.log('未解析之前', element)
         svgImgPromise.push(this.d3ReadSvg(element))
       }
       Promise.all(svgImgPromise).then((res) => {
@@ -784,9 +739,6 @@ export default {
         .merge(this.node)
         .on('click', function ($event, d) {
           that.$emit("nodeClick", $event, d)
-          this.nodeClassName = that.nodeClass(d, []).join(' ')
-          d3.select(this).classed(this.nodeClassName, true)
-          that.addLinkClass('node', d.id)
         }).on('mouseover', function () {
           d3.select(this).classed('focus focusing', true)
         })
@@ -858,6 +810,9 @@ export default {
         )
         .style("stroke-width", 3)
         .merge(this.link)
+        .on('click', function ($event, d) {
+          that.$emit("linkClick", $event, d)
+        })
         .on('mouseover', function () {
           const id = d3.select(this).attr('marker-end').split('url(#marker-')[1].split(')')[0]
           // const source = d.target.__data__.source
@@ -1076,4 +1031,4 @@ marker.selected .arrow {
   background-color: #1aad8d !important;
   border-color: #1aad8d !important;
 }
-</style>
+</style>../utils/svgExport

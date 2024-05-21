@@ -1,14 +1,14 @@
 <template>
-    <div class="index2-container">
-      <D3Three
-        ref="D3Three"
+    <div class="index1-container">
+      <Pro
+        ref="proDThree"
         :selection="{ nodes: selected, links: linksSelected }"
         :net-nodes="nodes"
         :net-links="links"
         :options="options"
         :linkCb="linkCb"
         :node-sym='nodeSym'
-        :tool="tool"
+        :tool.sync="tool"
         @allNodes="allNodes"
         @allLinks="allLinks"
         @nodeClick="nodeClick"
@@ -22,39 +22,39 @@
         :nodes.sync="selected"
         :links.sync="linksSelected"
         @removeNode="removeNode"
-        />
+      />
       <!-- 导出中 -->
       <div v-if="toaster" class="toaster">
         <p>{{ toaster }}</p>
       </div>
-
+  
       <el-dialog
         title="Export as:"
         :visible.sync="dialogVisible"
         width="30%"
         center>
         <div style="text-align: center">
-            <el-radio v-model="toSvg" :label="true">svg</el-radio>
-            <el-radio v-model="toSvg" :label="false">png</el-radio>
+          <el-radio v-model="toSvg" :label="true">svg</el-radio>
+          <el-radio v-model="toSvg" :label="false">png</el-radio>
         </div>
         <span slot="footer" class="dialog-footer">
-            <el-button @click="dialogVisible = false" style="padding: 0.5em 2em;">取 消</el-button>
-            <el-button type="primary" @click="screenShot()" style="padding: 0.5em 2em;">确 定</el-button>
+          <el-button @click="dialogVisible = false" style="padding: 0.5em 2em;">取 消</el-button>
+          <el-button type="primary" @click="screenShot()" style="padding: 0.5em 2em;">确 定</el-button>
         </span>
-    </el-dialog>
+      </el-dialog>
     </div>
   </template>
   
-<script>
-  import * as utils from './utils.js'
-  import D3Three from '../components/D3Three.vue'
-  import ToolBar from '../components/ToolBar.vue'
-  import MySelection from '../components/MySelection.vue'
-  import saveImage from './saveImage.js'
+  <script>
+  import * as utils from '@/utils/index'
+  import Pro from '@/components/ProDThree.vue'
+  import ToolBar from '@/components/ToolBar.vue'
+  import MySelection from '@/components/MySelection.vue'
+  import saveImage from '@/utils/saveImage.js'
   export default {
     name: 'App',
     components: {
-      D3Three,
+      Pro,
       ToolBar,
       MySelection
     },
@@ -163,14 +163,17 @@
       },
       selectNode(node) {
         this.selected[node.id] = node
+        this.$refs['proDThree'].selectNode(node)
       },
       selectNodesLinks() {
         for (let link of this.links) {
           // node is selected
           if (this.selected[link.source.id] || this.selected[link.target.id]) {
+            console.log('---selectLink---', link)
             this.selectLink(link)
             // node is not selected
           } else {
+            console.log('---unSelectLink---', link)
             this.unSelectLink(`${link.source.id}-${link.target.id}`)
           }
         }
@@ -207,7 +210,7 @@
         if (this.selected[nodeId]) {
           this.$delete(this.selected, nodeId)   
         }
-        this.$refs['D3Three'].removeNode(nodeId)
+        this.$refs['proDThree'].removeNode(nodeId)
         console.log('所有的线', this.links)
         for (let i = 0; i < this.links.length; i++) {
           const link = this.links[i];
@@ -225,7 +228,7 @@
           const id = `${link.source.id}-${link.target.id}`
           if (this.linksSelected[id]) {
             this.$delete(this.linksSelected, id)
-            this.$refs['D3Three'].removeLink(id)
+            this.$refs['proDThree'].removeLink(id)
           }
         }
         return links.newLinks
@@ -235,7 +238,7 @@
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
         const charactersLength = characters.length;
         for (let i = 0; i < length; i++) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
+          result += characters.charAt(Math.floor(Math.random() * charactersLength));
         }
         return result;
       },
@@ -257,7 +260,7 @@
           value: 1
         };
         // 去新增节点 和 线
-        this.$refs['D3Three'].createNodeAndLink(nNode, newLink)
+        this.$refs['proDThree'].createNodeAndLink(nNode, newLink)
       },
       linkClick(event, link) {
         if (this.tool === 'killer') {
@@ -282,12 +285,12 @@
       },
       removeLink(link) {
         this.unSelectLink(`${link.source.id}-${link.target.id}`)
-        this.$refs['D3Three'].removeLink(`${link.source.id}-${link.target.id}`)
+        this.$refs['proDThree'].removeLink(`${link.source.id}-${link.target.id}`)
       },
       selectLink(link) {
         this.$set(this.linksSelected, `${link.source.id}-${link.target.id}`, link)
         // 选中线
-  
+        this.$refs['proDThree'].selectLink(`${link.source.id}-${link.target.id}`)
       },
       selectionEvent(action, args) {
         utils.methodCall(this, action, args)
@@ -297,32 +300,35 @@
         this.selected = {}
         this.linksSelected = {}
         // 取消所有的节点和关系线的选中
-        this.$refs['D3Three'].clearAllSelect()
+        this.$refs['proDThree'].clearAllSelect()
       },
       unSelectNode(nodeId) {
         if (this.selected[nodeId]) {
           this.$delete(this.selected, nodeId)
           // 节点取消选中
-          this.$refs['D3Three'].cancleNodeSelect(nodeId)
+          this.$refs['proDThree'].cancleNodeSelect(nodeId)
           for (let link of this.links) {
             // node is selected
             if (nodeId === link.source.id || nodeId === link.target.id) {
+              console.log('---在index找到线', `${link.source.id}-${link.target.id}`)
               // 去掉线的选中
-              this.$refs['D3Three'].cancleLinkSelect(`${link.source.id}-${link.target.id}`)
+              this.$refs['proDThree'].cancleLinkSelect(`${link.source.id}-${link.target.id}`)
             }
           }
         }
-        this.selectNodesLinks()
+        // this.selectNodesLinks()
       },
       unSelectLink(linkId) {
         if (this.linksSelected[linkId]) {
           this.$delete(this.linksSelected, linkId)
+          this.$refs['proDThree'].cancleLinkSelect(`${linkId}`)
         }
       },
       toolChange(val) {
         this.tool = val
         let cursorClass = (val === 'pointer') ? '' : 'cross-cursor'
         this.$el.className = cursorClass
+        this.$refs['proDThree'].handlerChangeTool(val)
       },
       takeScreenShot() {
         console.log('保存')
@@ -334,7 +340,7 @@
         let exportFunc
         let args = []
         toSVG = this.toSvg
-        exportFunc = this.$refs['D3Three'].svgScreenShot
+        exportFunc = this.$refs['proDThree'].svgScreenShot
         args = [toSVG, bgColor, svgAllCss]
         if (toSVG) name = name || 'export.svg'
         
@@ -348,29 +354,29 @@
       }
     }
   }
-</script>
-<style src="../assets/css/icons.css"></style>
-<style>
-.index2-container {
-  position: relative;
-}
-.cross-cursor{
-  cursor: crosshair;
-}
-.toaster {
+  </script>
+  <style src="@/assets/css/icons.css"></style>
+  <style>
+  .index1-container {
+    position: relative;
+  }
+   .cross-cursor{
+    cursor: crosshair;
+   }
+   .toaster {
     position: absolute;
-    bottom: 0.5em;
-    right: 2em;
-    z-index: 500;
-    background-color: #fff;
-    border: #1aad8d solid 2px;
-    border-radius: 0.25em;
-    min-width: 20em;
-    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    animation-name: toaster-anim;
-    animation-duration: 0.25s;
-}
-@keyframes toaster-anim {
+      bottom: 0.5em;
+      right: 2em;
+      z-index: 500;
+      background-color: #fff;
+      border: #1aad8d solid 2px;
+      border-radius: 0.25em;
+      min-width: 20em;
+      box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+      animation-name: toaster-anim;
+      animation-duration: 0.25s;
+   }
+   @keyframes toaster-anim {
     0%{
       opacity: 0;
       transform: scaleY(0) translateY(5em)
@@ -379,6 +385,6 @@
       opacity: 1;
       transform: scaleY(1) translateY(0)
     }
-}
+   }
      
-</style>
+  </style>
