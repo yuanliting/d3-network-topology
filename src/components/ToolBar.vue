@@ -3,7 +3,9 @@
         <ul>
             <li v-for="t, to in tools" v-bind:key="to">
                 <button class="circle" :class='buttonClass(to)' @click='setTool(to)'>
-                    <span :class="t.class"></span>
+                    <span v-if="t.class.includes('icon')" :class="t.class"></span>
+                    <i v-else-if="t.class.includes('el-icon')" class="el-icon-plus"></i>
+                    <svg-icon v-else :iconClass="t.class"></svg-icon>
                 </button>
             </li>
             <li>
@@ -31,8 +33,16 @@ export default {
                 class: 'icon-delete_forever'
             },
             parent: {
-                tip: 'click on node to create parent',
+                tip: '点击节点创建子节点',
                 class: 'icon-repo-forked'
+            },
+            children: {
+                tip: '点击画布创建一个新节点',
+                class: 'el-icon-plus'
+            },
+            boxSelect: {
+                tip: '鼠标框选',
+                class: 'boxSelect'
             },
             pin: {
                 tip: 'click on node to pin / unpin ',
@@ -48,7 +58,6 @@ export default {
             if (tool === this.tool) return 'selected'
         },
         setTool (tool) {
-            console.log('你点了工具', tool)
             this.tool = tool
             this.$emit('toolChange', this.tool)
             // let cursorClass = (tool === 'pointer') ? '' : 'cross-cursor'
@@ -65,6 +74,9 @@ export default {
                     break;
                 case 'add':
                     className = 'icon-repo-forked'
+                    break;
+                case 'boxSelect':
+                    className = 'box-select'
                     break;
                 case 'nomove':
                     className = 'icon-pin'
@@ -86,7 +98,7 @@ export default {
 </script>
 <style>
 .tools {
-    position: absolute;
+    position: fixed;
     bottom: 3em;
     right: 4em;
     z-index: 101;
@@ -96,6 +108,8 @@ export default {
     list-style: none;
     margin: 0 3em 0.5em 0;
     padding: 0;
+    display: flex;
+    flex-direction: row;
 }
 .tools ul li {
     display: inline;
@@ -125,10 +139,19 @@ button, select, option {
 .tools .selected i {
     color: #caa455;
 }
+.tools .selected svg {
+    color: #caa455;
+}
 .tools ul button span,
 .tools ul button i{
     font-size: 2.5em;
     line-height: 1em;
+    color: #1aad8d;
+}
+.tools ul button svg{
+    width: 2em;
+    height: 1.8em;
+    vertical-align: -0.6em;
     color: #1aad8d;
 }
 

@@ -7,18 +7,22 @@
                 <tr>
                     <th>id</th>
                     <th>name</th>
-                    <th></th>
-                    <th></th>
+                    <th>svg</th>
+                    <th>delete</th>
+                    <th>unSelect</th>
                 </tr>
                 <tr v-for="value,key in selectNodes" v-bind:key="key">
                     <td>{{ value.id }}</td>
                     <td>{{ value.name }}</td>
-                    <td>
+                    <td style="display: flex;align-items: center;">
+                        <el-avatar shape="square" :src="`${svgMap[value.group]}`" style="background: transparent;width: 18px;height: 18px;"></el-avatar>
+                    </td>
+                    <td style="text-align: center;">
                         <button title="delete" class="icon" @click='emit("removeNode",[value.id])'>
                             <span class="icon-delete"></span>
                         </button>
                     </td>
-                    <td>
+                    <td style="text-align: center;">
                         <button title="unselect" class="icon" @click='emit("unSelectNode",[value.id])'>❌</button>
                     </td>
                 </tr>
@@ -33,46 +37,57 @@
 <script>
 
 export default {
-    name: 'MySelection',
-    props: {
-        links: {
-            type: Object
-        },
-        nodes: {
-            type: Object
-        }
+  name: 'MySelection',
+  props: {
+    links: {
+      type: Object
     },
-    computed: {
+    nodes: {
+      type: Object
     },
-    watch: {
-        nodes: {
-          immediate: true,
-          deep: true,
-          handler(val) {
-            this.selectNodes = val
-            this.$forceUpdate()
-          }
-      },
-      links: {
-        immediate: true,
-        deep: true,
-        handler(val) {
-            this.nodeLinks = val
-            this.$forceUpdate()
-        }
-      },
-    },
-    data() {
-        return {
-            nodeLinks: {},
-            selectNodes: {}
-        }
-    },
-    methods: {
-        emit(action, args) {
-            this.$emit('action', action, args)
-        }
+    svgMap: {
+      type: Object
     }
+  },
+  computed: {
+  },
+  watch: {
+    nodes: {
+      immediate: true,
+      deep: true,
+      handler(val) {
+        this.$nextTick(() => {
+          this.selectNodes = val
+          this.$forceUpdate()
+        })
+      }
+    },
+    links: {
+      immediate: true,
+      deep: true,
+      handler(val) {
+        this.$nextTick(() => {
+          this.nodeLinks = val
+          this.$forceUpdate()
+        })
+      }
+    },
+  },
+  data() {
+    return {
+      nodeLinks: {},
+      selectNodes: {}
+    }
+  },
+  methods: {
+    init() {
+		// 子组件初始化
+	    this.selectNodes = JSON.parse(JSON.stringify(this.nodes)); 
+    },
+    emit(action, args) {
+      this.$emit('action', action, args)
+    }
+  }
 }
 </script>
 <style>

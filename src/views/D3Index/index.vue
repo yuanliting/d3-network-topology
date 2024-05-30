@@ -9,25 +9,30 @@
         :linkCb="linkCb"
         :node-sym='nodeSym'
         :tool.sync="tool"
+        :svgMap="svgMap"
         @allNodes="allNodes"
         @allLinks="allLinks"
         @nodeClick="nodeClick"
         @linkClick="linkClick"
         @screenShot='screenShotDone'
+        @showDrawer="showDrawer"
+        @selectionEvent="selectionEvent"
       />
       <ToolBar @toolChange="toolChange" @takeScreenShot="takeScreenShot" />
       <MySelection
+        ref="mySelection"
         v-if="showSelection"
         @action="selectionEvent"
         :nodes.sync="selected"
         :links.sync="linksSelected"
+        :svgMap="svgMap"
         @removeNode="removeNode"
       />
-      <!-- 导出中 -->
+      <!-- 导出中的提示 -->
       <div v-if="toaster" class="toaster">
         <p>{{ toaster }}</p>
       </div>
-  
+      <!-- 导出弹窗 -->
       <el-dialog
         title="Export as:"
         :visible.sync="dialogVisible"
@@ -42,6 +47,14 @@
           <el-button type="primary" @click="screenShot()" style="padding: 0.5em 2em;">确 定</el-button>
         </span>
       </el-dialog>
+      <!-- 编辑节点抽屉组件 -->
+      <EditNodeDrawer
+        :visible="drawerVisible"
+        :node="currentNode"
+        :svgMap="svgMap"
+        @cancel="cancelEditNode()"
+        @ok="okEditNode"
+      />
     </div>
   </template>
   
@@ -51,12 +64,15 @@
   import ToolBar from '@/components/ToolBar.vue'
   import MySelection from '@/components/MySelection.vue'
   import saveImage from '@/utils/saveImage.js'
+  import EditNodeDrawer from '@/components/editNodeDrawer'
+
   export default {
     name: 'App',
     components: {
       Pro,
       ToolBar,
-      MySelection
+      MySelection,
+      EditNodeDrawer
     },
     data() {
       return {
@@ -98,6 +114,19 @@
         tool: 'pointer',
         dialogVisible: false,
         canvas: false,
+        drawerVisible: false,
+        currentNode: null,
+        svgMap: {
+          0: require('@/assets/svg/交换机.svg'),
+          1: require('@/assets/svg/APP.svg'),
+          2: require('@/assets/svg/服务器.svg'),
+          3: require('@/assets/svg/网络.svg'),
+          4: require('@/assets/svg/PC.svg'),
+          5: require('@/assets/svg/云.svg'),
+          6: require('@/assets/svg/数据库.svg'),
+          7: require('@/assets/svg/earth.svg'),
+          8: require('@/assets/svg/Docker.svg')
+        },
       }
     },
     computed: {
@@ -164,16 +193,15 @@
       selectNode(node) {
         this.selected[node.id] = node
         this.$refs['proDThree'].selectNode(node)
+        this.$refs['mySelection'] ? this.$refs['mySelection'].init() : false
       },
       selectNodesLinks() {
         for (let link of this.links) {
           // node is selected
           if (this.selected[link.source.id] || this.selected[link.target.id]) {
-            console.log('---selectLink---', link)
             this.selectLink(link)
             // node is not selected
           } else {
-            console.log('---unSelectLink---', link)
             this.unSelectLink(`${link.source.id}-${link.target.id}`)
           }
         }
@@ -186,6 +214,12 @@
             break
           case 'parent':
             this.createParent(node)
+            break
+          case 'children':
+            // this.createSingleNode()
+            break
+          case 'boxSelect':
+            this.startBoxSelect()
             break
           case 'pin':
             this.pinNode(node)
@@ -205,17 +239,13 @@
         this.updateSelection()
       },
       removeNode (nodeId) {
-        console.log('根据nodeId进行判断删除', nodeId)
-        console.log('选中的node节点', this.selected)
         if (this.selected[nodeId]) {
           this.$delete(this.selected, nodeId)   
         }
         this.$refs['proDThree'].removeNode(nodeId)
-        console.log('所有的线', this.links)
         for (let i = 0; i < this.links.length; i++) {
           const link = this.links[i];
           if (link.source.id === nodeId || link.target.id === nodeId) {
-            console.log('---要删除的线---', link)
             this.removeLink(link)
           }
         }
@@ -243,24 +273,8 @@
         return result;
       },
       createParent(node) {
-        let nodeId = this.generateRandomString(10)
-        // let linkId = this.lastLinkId + 1
-        let nNode = utils.newNode(nodeId)
-        nNode.x = node.x + 50
-        nNode.y = node.y + 50
-        // this.nodes = this.nodes.concat(nNode)
-        this.lastNodeId++
-        // this.links = this.links.concat(utils.newLink(linkId, node.id, nodeId))
-        this.lastLinkId++
-         // 创建新节点的连接
-         var newLink = {
-          index: Object.keys(this.links).length + 1,
-          source: node, // 现有节点ID
-          target: nNode, // 新节点ID
-          value: 1
-        };
         // 去新增节点 和 线
-        this.$refs['proDThree'].createNodeAndLink(nNode, newLink)
+        this.$refs['proDThree'].createChildrenNode(node)
       },
       linkClick(event, link) {
         if (this.tool === 'killer') {
@@ -275,7 +289,6 @@
         this.updateSelection()
       },
       allNodes(args) {
-        console.log('所有的nodes', args)
         this.nodes = args
       },
       allLinks(args) {
@@ -290,9 +303,10 @@
       selectLink(link) {
         this.$set(this.linksSelected, `${link.source.id}-${link.target.id}`, link)
         // 选中线
-        this.$refs['proDThree'].selectLink(`${link.source.id}-${link.target.id}`)
+        this.$refs['proDThree'].selectLink('select',`${link.source.id}-${link.target.id}`)
       },
       selectionEvent(action, args) {
+        console.log('----取消选中---')
         utils.methodCall(this, action, args)
         this.updateSelection()
       },
@@ -300,19 +314,19 @@
         this.selected = {}
         this.linksSelected = {}
         // 取消所有的节点和关系线的选中
-        this.$refs['proDThree'].clearAllSelect()
+        this.$refs['proDThree'].clearAllSelect('select')
       },
       unSelectNode(nodeId) {
         if (this.selected[nodeId]) {
           this.$delete(this.selected, nodeId)
           // 节点取消选中
-          this.$refs['proDThree'].cancleNodeSelect(nodeId)
+          this.$refs['proDThree'].cancleNodeSelect('select',nodeId)
           for (let link of this.links) {
             // node is selected
             if (nodeId === link.source.id || nodeId === link.target.id) {
-              console.log('---在index找到线', `${link.source.id}-${link.target.id}`)
               // 去掉线的选中
-              this.$refs['proDThree'].cancleLinkSelect(`${link.source.id}-${link.target.id}`)
+              this.$refs['proDThree'].cancleLinkSelect('select', `${link.source.id}-${link.target.id}`)
+              this.unSelectLink(`${link.source.id}-${link.target.id}`)
             }
           }
         }
@@ -321,17 +335,27 @@
       unSelectLink(linkId) {
         if (this.linksSelected[linkId]) {
           this.$delete(this.linksSelected, linkId)
-          this.$refs['proDThree'].cancleLinkSelect(`${linkId}`)
+          this.$refs['proDThree'].cancleLinkSelect('select', `${linkId}`)
         }
       },
       toolChange(val) {
         this.tool = val
-        let cursorClass = (val === 'pointer') ? '' : 'cross-cursor'
+        let cursorClass = (val === 'pointer') ? 'pointer' : !val ? 'grab' : 'cross-cursor'
         this.$el.className = cursorClass
         this.$refs['proDThree'].handlerChangeTool(val)
+        this.$refs['proDThree'].deleteClickAddNode()
+        if(val === 'children') {
+          this.$refs['proDThree'].registerClickAddNode()
+        }
+        if(val === 'boxSelect') {
+          this.startBoxSelect()
+        }
+      },
+      startBoxSelect() {
+        console.log('进行框选')
+        this.$refs['proDThree'].drawBrush()
       },
       takeScreenShot() {
-        console.log('保存')
         this.dialogVisible = true
       },
       screenShot () {
@@ -351,6 +375,21 @@
           }
           this.screenShotDone(err)
         }, ...args)
+      },
+      showDrawer(node) {
+        this.drawerVisible = true
+        this.currentNode = node
+      },
+      cancelEditNode() {
+        this.drawerVisible = false
+        if (!this.selected[this.currentNode.id]) {
+          this.$refs['proDThree'].cancleNodeSelect('select', this.currentNode.id)
+        }
+      },
+      okEditNode(data) {
+        this.drawerVisible = false
+        console.log('确定更改', data)
+        this.$refs['proDThree'].editNode(data)
       }
     }
   }
@@ -359,6 +398,8 @@
   <style>
   .index1-container {
     position: relative;
+    width: 100vw;
+    height: 100vh;
   }
    .cross-cursor{
     cursor: crosshair;
