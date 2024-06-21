@@ -15,7 +15,7 @@
                     <td>{{ value.id }}</td>
                     <td>{{ value.name }}</td>
                     <td style="display: flex;align-items: center;">
-                        <el-avatar shape="square" :src="`${svgMap[value.group]}`" style="background: transparent;width: 18px;height: 18px;"></el-avatar>
+                        <el-avatar shape="square" :src="`${svgMap[value.type]}`" style="background: transparent;width: 18px;height: 18px;"></el-avatar>
                     </td>
                     <td style="text-align: center;">
                         <button title="delete" class="icon" @click='emit("removeNode",[value.id])'>

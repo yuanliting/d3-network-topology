@@ -16,7 +16,7 @@
                 <el-input v-model="form.name" autocomplete="off"></el-input>
             </el-form-item>
             <el-form-item label="节点图片" :label-width="formLabelWidth">
-                <el-checkbox-group v-model="form.group" size="small" class="select-node-img-checkbox-group" @change="changeImg">
+                <el-checkbox-group v-model="form.imgType" size="small" class="select-node-img-checkbox-group" @change="changeImg">
                     <el-checkbox v-for="(value, key, index) in svgMap" :label="key" :key="index">
                         <el-avatar shape="square" :src="`${value}`" style="background: transparent;"></el-avatar>
                     </el-checkbox>
@@ -53,7 +53,7 @@ export default {
       form: {
         id: '',
         name: '',
-        group: []
+        imgType: []
       },
       loading: false
     }
@@ -67,7 +67,7 @@ export default {
         if(val && this.node) {
             this.form.id = this.node.id
             this.form.name = this.node.name
-            this.form.group = [this.node.group.toString()]
+            this.form.imgType = this.node.imgType ? [this.node.imgType.toString()] : []
         }
       }  
     }
@@ -86,7 +86,7 @@ export default {
     changeImg(val) {
         console.log('改变之', val)
         if(val && val.length > 0) {
-            this.form.group = [val[val.length - 1]]
+            this.form.imgType = [val[val.length - 1]]
         }
     }
   }

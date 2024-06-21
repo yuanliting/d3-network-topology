@@ -63,7 +63,7 @@
   import Pro from '@/components/ProDThree.vue'
   import ToolBar from '@/components/ToolBar.vue'
   import MySelection from '@/components/MySelection.vue'
-  import saveImage from '@/utils/saveImage.js'
+  import saveImage from '@/utils/saveImage'
   import EditNodeDrawer from '@/components/editNodeDrawer'
 
   export default {
@@ -359,6 +359,7 @@
         this.dialogVisible = true
       },
       screenShot () {
+        debugger
         this.dialogVisible = false
         let name, bgColor, toSVG, svgAllCss
         let exportFunc
@@ -370,6 +371,7 @@
         
         exportFunc((err, url) => {
           if (!err) {
+            debugger
             if (!toSVG) saveImage.save(url, 'img')
             else saveImage.download(url, name)
           }

@@ -3,9 +3,11 @@ export default {
     // svgOrg: svg element
     // allCss : true includes all svg css styles, false includes only matched styles
     export (svgOrg, allCss) {
+      debugger
         console.log('调用了export', svgOrg, allCss)
       let svg = null
       if (this.isSvgData(svgOrg)) {
+        debugger
         svg = svgOrg.cloneNode(true)
         let childs = svgOrg.parentNode.querySelectorAll('*')
         let cssStyle = {}
@@ -22,6 +24,7 @@ export default {
             cssStyle[rule.selectorText] = rule.cssText
           }
         }
+        debugger
         let css = Object.values(cssStyle).join('\n')
         if (css) {
           let style = document.createElementNS(this.NS, 'style')
@@ -31,10 +34,12 @@ export default {
           svg.appendChild(style)
         }
       }
+      console.log(svg)
       return svg
     },
   
     makeCanvas (width, height, background) {
+      debugger
       let canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
@@ -49,10 +54,12 @@ export default {
     },
   
     svgToImg (svg, canvas, cb) {
+      debugger
       let xml = this.serialize(svg)
       let img = new Image()
       let ctx = canvas.getContext('2d')
       img.onload = function () {
+        debugger
         ctx.drawImage(this, 0, 0)
         let png = canvas.toDataURL('image/png')
         cb(null, png, ctx)

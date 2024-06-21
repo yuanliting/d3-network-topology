@@ -91,52 +91,52 @@ export default {
           {
             id: "Myriel",
             name: 'Myriel',
-            group: 1
+            imgType: 1
           },
           {
             id: "Napoleon",
             name: "Napoleon",
-            group: 1
+            imgType: 1
           },
           {
             id: "Labarre",
             name: "Labarre",
-            group: 2
+            imgType: 2
           },
           {
             id: "Valjean",
             name: "Valjean",
-            group: 2
+            imgType: 2
           },
           {
             id: "Baptistines",
             name: "Baptistines",
-            group: 1
+            imgType: 1
           },
           {
             id: "MmeMagloire",
             name: "MmeMagloire",
-            group: 1
+            imgType: 1
           },
           {
             id: "网络",
             name: "网络",
-            group: 7
+            imgType: 7
           },
           {
             id: 'docker',
             name: "docker",
-            group: 8
+            imgType: 8
           },
           {
             id: '云',
             name: "云",
-            group: 5
+            imgType: 5
           },
           {
             id: '数据库',
             name: "数据库",
-            group: 6
+            imgType: 6
           }
         ],
         links: [
@@ -197,13 +197,10 @@ export default {
       symbolSize: 40,
       padding: 4,
       svg_circle: null,
+      svg_rect: null,
       svg_text: null,
       svg_defs: null,
       svg: null,
-      size: {
-        w: '100%',
-        h: '100%'
-      },
       tool: 'pointer',
       currentNode: null,
       svgImgBlob: [],
@@ -220,7 +217,11 @@ export default {
       moveX1: 0,
       moveY1: 0,
       moveDiffX: 0,
-      moveDiffY: 0
+      moveDiffY: 0,
+      groupsOne: [
+        {id: 'group-cms', name: 'cms', group: 1, imgType: 1, nodes: [{id: 'jiaohuanji', name: '交换机', group: 1, imgType: 1}, {id: 'app', name: 'App', group: 1, imgType: 1}]},
+        {id: 'group-sop', name: 'sop', group: 2, imgType: 1, nodes: [{id: 'fuwiqi', name: '服务器', group: 2, imgType: 2}, {id: 'wawonglong', name: '网络2', group: 2, imgType: 3}]}
+      ]
     }
   },
   watch: {
@@ -244,7 +245,20 @@ export default {
     }
   },
   mounted() {
+    const vm = this
     const promise = []
+    // 将每个组转换为一个节点
+    vm.graph.nodes = vm.graph.nodes.concat(this.groupsOne.map(function(group) {
+      return {
+        id: group.id,
+        name: group.name,
+        group: group.id,
+        groupRadius: 20,
+        members: group.nodes,
+        imgType: 1,
+        type: 'group'
+      };
+    }));
     for (const key in this.imgMap) {
       const element = this.imgMap[key];
       promise.push(this.getBase64Image(element))
@@ -253,11 +267,33 @@ export default {
       for (const key in this.imgMap) {
         this.imgMap[key] = res[key]
       }
+       // 将组内节点合并到nodes数组中
+       // 组节点和组内节点的链接线
+       this.groupsOne.forEach(function(group) {
+        vm.graph.nodes = vm.graph.nodes.concat(group.nodes.map(function(node) {
+          return {
+            id: node.id,
+            name: node.name,
+            group: group.id,
+            imgType: node.imgType,
+            type: 'member'
+          };
+        }));
+        vm.graph.links = vm.graph.links.concat(group.nodes.map(function(node) {
+          return {
+            source: group.id,
+            target: node.id,
+            value: 1
+          };
+        }));
+      });
+      console.log('线---', vm.graph.links)
       // this.readJson()
       this.innitRender()
       this.$emit('allNodes', this.simulation.nodes())
       console.log('一共有多少条线', this.simulation.force('link').links())
       this.$emit('allLinks', this.simulation.force('link').links())
+      console.log(d3.select('#group-cms'))
     })
   },
   methods: {
@@ -357,18 +393,24 @@ export default {
       const index = this.graph.nodes.findIndex((e) => { return e.id === node.id })
       if (index > -1) {
         this.graph.nodes[index].name = node.name
-        this.graph.nodes[index].group = Number(node.group[0])
+        // this.graph.nodes[index].group = Number(node.group[0])
+        this.graph.nodes[index].imgType = Number(node.imgType[0])
         d3.select(`#${node.id} text`).text(node.name)
+        debugger
+        console.log(99, d3.select(`#${node.id} .node-svg-g svg`))
         if (d3.select(`#${node.id} image`)) {
           d3.select(`#${node.id} image`).remove()
         } else {
           d3.select(`#${node.id} .node-svg-g svg`).remove()
         }
+        if (d3.select(`#${node.id} .node-svg-g`)) {
+          d3.select(`#${node.id} .node-svg-g`).remove()
+        }
         this.cancleNodeSelect('select',this.currentNode.id)
         if (this.svgImgBlob && this.svgImgBlob.length > 0) {
           for (let i = 0; i < this.svgImgBlob.length; i++) {
             const element = this.svgImgBlob[i];
-            if (i === Number(node.group)) {
+            if (i === Number(node.imgType) && element) {
               // 为每个节点添加一个克隆的SVG
               const clone = document.importNode(element, true);
               console.log(clone)
@@ -697,7 +739,8 @@ export default {
       this.svg.on('mouseup.boxSelect', null); // 统一解除绑定
       this.svg.on('mousemove.boxSelect', null);
       this.svg.on('mousedown.boxSelect', null);
-      const rect = this.svg.select("rect")
+      // 后期手动添加的框选，不包括原本视图加载出来的组（rect框）
+      const rect = this.svg.select("rect#squareSelect")
       if(rect) {
         rect.remove()
       }
@@ -772,6 +815,7 @@ export default {
           }
 
           //最后通过和node的坐标比较，确定哪些点在圈选范围
+          console.log('lua--', d3.selectAll(".node-item"))
           d3.selectAll(".node-item").attr("temp", function (d) {
             if (d.x < rightBottom[0] && d.x > leftTop[0] && d.y > leftTop[1] && d.y < rightBottom[1]) {
               const node = d3.select(this)
@@ -885,7 +929,6 @@ export default {
         .on('zoom', function () {
           const transform = d3.zoomTransform(this);
           that.container.attr('transform', transform);
-          console.log(transform, 'transform...')
       })
 
       this.svg.call(this.zoom).on('dblclick.zoom', null);
@@ -910,9 +953,12 @@ export default {
         .force("link", d3.forceLink(this.graph.links).id(d => d.id)) // 连接力，拉动节点相互连接，好像节点之间有一个弹簧
         .force("charge", d3.forceManyBody()) // 排斥力，类似带电电子的排斥方式，推动所有节点彼此远离
         .force("center", d3.forceCenter(width / 2, height / 2)) // 中心力，将所有的节点都推向图表的中心（给定的一个点），默认坐标是[0,0]，施加力时，所有节点的相对位置保持不变
-        .force("collide", d3.forceCollide().radius(60).iterations(2)) // 
         .alphaDecay(0.05) // 衰减系数，值越大，图表稳定越快
         .on("tick", this.ticked);
+
+      // 添加碰撞力，使用节点的groupRadius作为碰撞半径
+      this.simulation.force("collide", d3.forceCollide(d => d.groupRadius + 1).radius(60).iterations(2));
+ 
       this.simulation.force('charge')
         .strength(-50) // 排斥力强度，正值相互吸引，负值相互排斥
       this.simulation.force('link')
@@ -959,8 +1005,6 @@ export default {
           const id = d3.select(this).attr('marker-end').split('url(#marker-')[1].split(')')[0]
           // const source = d.target.__data__.source
           // const target = d.target.__data__.target
-          // console.log('source节点', source)
-          // console.log('target节点', target)
           d3.select(this).classed('focus focusing', true)
           vm.svg.select('defs').selectAll('marker')
             .each(function (m) {
@@ -980,8 +1024,6 @@ export default {
           const id = d3.select(this).attr('marker-end').split('url(#marker-')[1].split(')')[0]
           // const source = d.target.__data__.source
           // const target = d.target.__data__.target
-          // console.log('source节点', source)
-          // console.log('target节点', target)
           d3.select(this).classed('focus focusing', false);
           vm.svg.select('defs').selectAll('marker')
             .each(function (m) {
@@ -1026,39 +1068,34 @@ export default {
         })
         .on('mouseout', function () {
           d3.select(this).classed('focus focusing', false)
-        }).call(this.drag(this.simulation));
+        }).call(this.drag(this.simulation)); // 使节点可以拖动
 
-      this.svg_circle = this.node.append('circle')
-        .attr('r', this.symbolSize / 2 + this.padding + 2.6)
+      this.svg_circle = this.node.filter(item => !item.id.includes('group-')).append('circle')
+        .attr("r", function(d) {
+            return d.id.includes('group-') ? (vm.symbolSize / 2 + vm.padding + 2.6)*10 : vm.symbolSize / 2 + vm.padding + 2.6; // 组节点和组内节点圆圈大小不同
+        })
         .attr('class', 'node-bg')
 
       // 节点文字
-      this.svg_text = this.node.filter(item => item.id !== '云' && item.id !== '数据库').data(this.graph.nodes)
+      this.svg_text = this.node.data(this.graph.nodes)
         .append("text")
         .attr("class", "node")
         .text(function (d) {
           return d.id;
         })
-        .attr("dx", "0.2em")
+        .attr("dx", function() {
+            return '0.2em';
+        })
         .attr("dy", "3em")
 
-      this.node.filter(item => item.id === '云')
-        .append("text")
-        .attr("class", "node")
-        .text(function (d) {
-          return d.id;
-        })
-        .attr("dx", "-0.1em")
-        .attr("dy", "2.3em")
-
-      this.node.filter(item => item.id === '数据库')
-        .append("text")
-        .attr("class", "node")
-        .text(function (d) {
-          return d.id;
-        })
-        .attr("dx", "0.1em")
-        .attr("dy", "2.8em")
+    this.svg_rect = this.node.filter(item => item.type ==='group')
+      .append('rect')
+      .attr("x", () => -(vm.symbolSize / 2 + vm.padding + 2.6)*5)
+      .attr("y", -(vm.symbolSize / 2 + vm.padding + 2.6)*5)
+      .attr("width", (vm.symbolSize / 2 + vm.padding + 2.6)*12)
+      .attr("height", (vm.symbolSize / 2 + vm.padding + 2.6)*12)
+      .attr('fill', 'transparent')
+      .attr('class', 'group-bg')
 
       // 节点图片
       // const that = this
@@ -1066,7 +1103,7 @@ export default {
       //   .append("image")
       //   .attr("width", function (d) {
       //     var width = 35;
-      //     switch (d.group) {
+      //     switch (d.imgType) {
       //       case '0':
       //         width = 2 * width;
       //         break;
@@ -1080,7 +1117,7 @@ export default {
       //   })
       //   .attr("height", function (d) {
       //     var height = 38;
-      //     switch (d.group) {
+      //     switch (d.imgType) {
       //       case '0':
       //         height = 2 * height;
       //         break;
@@ -1093,7 +1130,7 @@ export default {
       //     return height;
       //   })
       //   .attr("xlink:href", function (d) {
-      //     return that.imgMap[d.group];
+      //     return that.imgMap[d.imgType];
       //   }).attr("x", -17)
       //   .attr("y", -19);
 
@@ -1107,7 +1144,7 @@ export default {
       Promise.all(svgImgPromise).then((res) => {
         if (res && res.length > 0) {
           this.svgImgBlob = res
-          vm.node.filter(item => item.id !== '云' && item.id !== '数据库').data(vm.graph.nodes)
+          vm.node.data(vm.graph.nodes)
             .append("g")
             .attr('transform', 'translate(-16, -16)')
             .attr('fill', '#111')
@@ -1115,15 +1152,14 @@ export default {
             .attr('id', (n) => `g-${n.id}`)
           for (let i = 0; i < vm.graph.nodes.length; i++) {
             const element = vm.graph.nodes[i];
-            if (element.id !== '云' && element.id !== '数据库') {
+            if (element.id && element.imgType) {
               // 为每个节点添加一个克隆的SVG
-              var clone = document.importNode(res[element.group], true);
+              var clone = document.importNode(res[element.imgType], true);
               d3.select(`#g-${element.id}`).append(() => clone).attr('width', 32).attr('height', 32);
             }
           }
         }
       })
-
 
       // 连接线箭头
       this.defs = this.container.append('svg:defs');
@@ -1149,52 +1185,6 @@ export default {
       marker.append('svg:path')
         .attr('d', 'M 0 0 L 10 5 L 0 10 z')
         .attr('class', 'arrow')
-
-      //云
-      this.defs.append('g')
-        .attr('id', 'cloud')
-        .attr('transform', 'scale(0.042)')
-        .append('path')
-        .attr('d', 'M709.3 285.8C668.3 202.7 583 145.4 484 145.4c-132.6 0-241 102.8-250.4 233-97.5 27.8-168.5 113-168.5 213.8 0 118.9 98.8 216.6 223.4 223.4h418.9c138.7 0 251.3-118.8 251.3-265.3 0-141.2-110.3-256.2-249.4-264.5z')
-        .attr('fill', '#FF9800')
-      //数据库
-      let database = this.defs.append('g')
-        .attr('id', 'database')
-        .attr('transform', 'scale(0.042)')
-        .attr('fill', '#2196F3')
-
-      database.append('path')
-        .attr('d', 'M512 800c-247.42 0-448-71.63-448-160v160c0 88.37 200.58 160 448 160s448-71.63 448-160V640c0 88.37-200.58 160-448 160z')
-
-      database.append('path')
-        .attr('d', 'M512 608c-247.42 0-448-71.63-448-160v160c0 88.37 200.58 160 448 160s448-71.63 448-160V448c0 88.37-200.58 160-448 160z');
-
-      database.append('path')
-        .attr('d', 'M512 416c-247.42 0-448-71.63-448-160v160c0 88.37 200.58 160 448 160s448-71.63 448-160V256c0 88.37-200.58 160-448 160z');
-
-      database.append('path')
-        .attr('d', 'M64 224a448 160 0 1 0 896 0 448 160 0 1 0-896 0Z');
-
-      this.node.filter(item => item.id == '云')
-        .append('use')
-        .attr('xlink:href', '#cloud')
-        .attr('x', function () {
-          // 不会因为放大而宽高变化
-          return -this.getBBox().width / 2 - 3.5
-        })
-        .attr('y', function () {
-          return -this.getBBox().height / 2 - 7.5
-        })
-
-      this.node.filter(item => item.id == '数据库')
-        .append('use')
-        .attr('xlink:href', '#database')
-        .attr('x', function () {
-          return -this.getBBox().width / 2 - 2
-        })
-        .attr('y', function () {
-          return -this.getBBox().height / 2 - 2
-        })
 
       this.bindZoom(); //绑定zoom
 
@@ -1240,30 +1230,59 @@ export default {
       if (!event.active) this.simulation.alphaTarget(0);
       d.fx = d.x;
       d.fy = d.y;
+
+      // 更新组内的其他节点
+      if(d && d.type && d.type === 'member') {
+        // 获取组内的其他成员
+        const arr = []
+        if(this.graph.nodes && this.graph.nodes.length > 0) {
+          for (let i = 0; i < this.graph.nodes.length; i++) {
+            const element = this.graph.nodes[i];
+            if(element.id !== d.id && element.group && element.group === d.group) {
+              arr.push(element)
+            }
+          }
+          this.changeNewPosition(arr, d)
+        }
+      }
+      // 统一更改组内成员的位置
+      if(d && d.type && d.type === 'group') {
+        if(d.members && d.members.length > 0) {
+          this.changeNewPosition(d.members, d)
+        }
+      }
+      // 框选拖动某个节点，则将框选的其他节点一起也拖动（改变位置）
       if(this.boxSelectNodeList && this.boxSelectNodeList.length > 0) {
         const exitItem = this.boxSelectNodeList.find((e) => { return e.id === d.id})
-        const dragIdMap = new Map;
+        const arr = []
         for (let i = 0; i < this.boxSelectNodeList.length; i++) { 
-          // 统一更改绑定数据的值
           if(this.boxSelectNodeList[i].id !== d.id && exitItem) {
-            const node = d3.select(`#${this.boxSelectNodeList[i].id}`);
-            dragIdMap.set(this.boxSelectNodeList[i].id, true);
-            // 重新绑定拖拽后的新坐标
-            node.fx = node.x + this.moveDiff
-            node.fy = node.y + this.moveDiffY
+            arr.push(this.boxSelectNodeList[i])
           }
         }
-        //对应的graph.nodes原始数据也要更新，假如你有个保存的场景 那你获取到的坐标就不是最新的了
-        this.graph.nodes.forEach((item) => {
-          if (dragIdMap.has(item.id) && item.id !== d.id) {
-            item.fx = item.x + this.moveDiffX;
-            item.fy = item.y + this.moveDiffY;
-            item.x = item.x + this.moveDiffX;
-            item.y = item.y + this.moveDiffY;
-            console.log(this.moveDiffX, item.y)
-          }
-        })
+        // 统一更改绑定数据的值
+        this.changeNewPosition(arr, d)
       }
+    },
+    changeNewPosition(arr, d) {
+      // 统一更改组内成员的位置
+      const dragIdMap = new Map;
+      for (let i = 0; i < arr.length; i++) {
+        const node = d3.select(`#${arr[i].id}`);
+        dragIdMap.set(arr[i].id, true);
+        // 重新绑定拖拽后的新坐标
+        node.fx = node.x + this.moveDiff
+        node.fy = node.y + this.moveDiffY
+      }
+      //对应的graph.nodes原始数据也要更新，假如你有个保存的场景 那你获取到的坐标就不是最新的了
+      this.graph.nodes.forEach((item) => {
+        if (dragIdMap.has(item.id) && item.id !== d.id) {
+          item.fx = item.x + this.moveDiffX;
+          item.fy = item.y + this.moveDiffY;
+          item.x = item.x + this.moveDiffX;
+          item.y = item.y + this.moveDiffY;
+        }
+      })
     },
     fix_nodes(this_node) {
       this.node.each(function (d) {
@@ -1343,7 +1362,7 @@ export default {
           .append("image")
           .attr("width", function (d) {
             var width = 35;
-            switch (d.group) {
+            switch (d.imgType) {
               case '0':
                 width = 2 * width;
                 break;
@@ -1357,7 +1376,7 @@ export default {
           })
           .attr("height", function (d) {
             var height = 38;
-            switch (d.group) {
+            switch (d.imgType) {
               case '0':
                 height = 2 * height;
                 break;
@@ -1370,7 +1389,7 @@ export default {
             return height;
           })
           .attr("xlink:href", function (d) {
-            return that.imgMap[d.group];
+            return that.imgMap[d.imgType];
           }).attr("x", -17)
           .attr("y", -19);
 
@@ -1478,9 +1497,17 @@ export default {
      */
     svgScreenShot(cb, toSvg, background, allCss) {
       let svg = svgExport.export(this.$refs.svg, allCss)
+      let width = 1000
+      let height = 500
+      const svgDom = $('#svg1')
       if (!toSvg) {
         if (!background) background = this.searchBackground()
-        let canvas = svgExport.makeCanvas(this.size.w, this.size.h, background)
+        // 获取svg的宽高
+        if(svgDom) {
+          width = $('#svg1').width()
+          height = $('#svg1').height()
+        }
+        let canvas = svgExport.makeCanvas(width, height, background)
         svgExport.svgToImg(svg, canvas, (err, img) => {
           if (err) cb(err)
           else cb(null, img)
@@ -1693,6 +1720,11 @@ export default {
 
 .node-bg {
   fill: #fff;
+}
+.group-bg {
+  stroke-opacity: 0.8;
+  stroke: #8e8c8c;
+  stroke-width: 2px;
 }
 
 .link_item.focus {

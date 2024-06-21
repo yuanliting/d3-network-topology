@@ -15,7 +15,7 @@
   <script>
   import * as $ from 'jquery'
   import * as d3 from 'd3'
-  import svgExport from '@/utils/svgExport'
+  import svgExport from '../svgExport'
   
   export default {
     name: 'ProDThree',
@@ -937,4 +937,4 @@
     background-color: #1aad8d !important;
     border-color: #1aad8d !important;
   }
-  </style>../utils/svgExport
+  </style>
