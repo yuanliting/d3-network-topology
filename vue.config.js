@@ -3,6 +3,9 @@ const path = require('path')
 const resolve = dir => path.join(__dirname, dir)
 module.exports = defineConfig({
   transpileDependencies: true,
+  configureWebpack: {
+    devtool: "source-map"//开启debugger
+  },
   chainWebpack: config => {
     config.module
       .rule('svg')

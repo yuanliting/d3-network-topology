@@ -1,27 +1,53 @@
 <template>
-    <div class="index1-container">
-      <Pro
-        ref="proDThree"
-        :selection="{ nodes: selected, links: linksSelected }"
-        :net-nodes="nodes"
-        :net-links="links"
-        :options="options"
-        :linkCb="linkCb"
-        :node-sym='nodeSym'
-        :tool.sync="tool"
-        :svgMap="svgMap"
-        @allNodes="allNodes"
-        @allLinks="allLinks"
-        @nodeClick="nodeClick"
-        @linkClick="linkClick"
-        @screenShot='screenShotDone'
-        @showDrawer="showDrawer"
-        @selectionEvent="selectionEvent"
-      />
-      <ToolBar @toolChange="toolChange" @takeScreenShot="takeScreenShot" />
+    <div class="containers index1-container">
+      <div class="top-btn-div">
+        <div class="theme-switch-wrapper"> 
+          <label class="theme-switch" for="checkbox">
+              <input type="checkbox" id="checkbox"  @click="switchTheme($event)" />
+              <div class="slider round"></div>
+          </label>
+        </div> 
+        <el-button class="sacle-big-btn" @click="bigChange()">放大</el-button>
+        <el-button class="sacle-small-btn" @click="smallChange()">缩小</el-button>
+        <el-button class="sacle-small-btn" @click="centerChange()">居中</el-button>
+        <el-button :type="layout === 'tree' ? 'primary' : ''" class="sacle-small-btn" plain @click="treeLayout()">tree layout</el-button>
+        <el-button :type="layout === 'reset' ? 'primary' : ''" class="sacle-small-btn" plain @click="resetLayout()">reset layout</el-button>
+        <el-button class="clear-svg-btn" @click="clearChange()">清空画布</el-button>
+        <el-button class="save-btn" @click="saveChange()">保存更改</el-button>
+        <el-button v-if="layout === 'tree'" class="save-btn" @click="addTreeNodes()">添加五个节点</el-button>
+      </div>
+     <div class="content-flex-wrap">
+      <div v-if="layout === 'reset'" class="left-list" :class="{'collapsed': !$store.state.isCollapse, 'notCollapsed': $store.state.isCollapse}">
+        <List @changeCollapsed="changeCollapsed" @addNode="addNode" @addSvgNode="addSvgNode" />
+      </div>
+      <div class="right-svg-wrap" :class="{'collapsed': !$store.state.isCollapse, 'notCollapsed': $store.state.isCollapse}">
+        <Pro
+          v-if="layout === 'reset'"
+          ref="proDThree"
+          :selection="{ nodes: selected, links: linksSelected }"
+          :net-nodes="nodes"
+          :net-links="links"
+          :options="options"
+          :linkCb="linkCb"
+          :node-sym='nodeSym'
+          :tool.sync="tool"
+          :svgMap="svgMap"
+          @allNodes="allNodes"
+          @allLinks="allLinks"
+          @nodeClick="nodeClick"
+          @linkClick="linkClick"
+          @screenShot='screenShotDone'
+          @showNodeDrawer="showNodeDrawer"
+          @selectionEvent="selectionEvent"
+          @changeCollapsed="changeCollapsed"
+        />
+        <Tree v-if="layout === 'tree'" ref="tree" />
+      </div>
+     </div>
+      <ToolBar v-if="layout === 'reset'" @toolChange="toolChange" @takeScreenShot="takeScreenShot" />
       <MySelection
         ref="mySelection"
-        v-if="showSelection"
+        v-if="showSelection && layout === 'reset'"
         @action="selectionEvent"
         :nodes.sync="selected"
         :links.sync="linksSelected"
@@ -49,11 +75,18 @@
       </el-dialog>
       <!-- 编辑节点抽屉组件 -->
       <EditNodeDrawer
-        :visible="drawerVisible"
+        :visible="nodeDrawerVisible"
         :node="currentNode"
         :svgMap="svgMap"
         @cancel="cancelEditNode()"
         @ok="okEditNode"
+      />
+       <!-- 编辑连接线抽屉组件 -->
+       <EditLinkDrawer
+        :visible="linkDrawerVisible"
+        :link="currentLink"
+        @cancel="cancelEditLink()"
+        @ok="okEditLink"
       />
     </div>
   </template>
@@ -65,14 +98,19 @@
   import MySelection from '@/components/MySelection.vue'
   import saveImage from '@/utils/saveImage'
   import EditNodeDrawer from '@/components/editNodeDrawer'
-
+  import EditLinkDrawer from '@/components/editLinkDrawer'
+  import Tree from '@/components/Tree.vue'
+  import List from '@/components/list/index.vue'
   export default {
     name: 'App',
     components: {
       Pro,
       ToolBar,
       MySelection,
-      EditNodeDrawer
+      EditNodeDrawer,
+      EditLinkDrawer,
+      Tree,
+      List
     },
     data() {
       return {
@@ -114,7 +152,7 @@
         tool: 'pointer',
         dialogVisible: false,
         canvas: false,
-        drawerVisible: false,
+        nodeDrawerVisible: false,
         currentNode: null,
         svgMap: {
           0: require('@/assets/svg/交换机.svg'),
@@ -125,8 +163,14 @@
           5: require('@/assets/svg/云.svg'),
           6: require('@/assets/svg/数据库.svg'),
           7: require('@/assets/svg/earth.svg'),
-          8: require('@/assets/svg/Docker.svg')
+          8: require('@/assets/svg/Docker.svg'),
+          9: require('@/assets/svg/router.svg'),
+          10: require('@/assets/svg/switch.svg'),
+          11: require('@/assets/svg/building.svg')
         },
+        linkDrawerVisible: false,
+        currentLink: null,
+        layout: 'reset'
       }
     },
     computed: {
@@ -137,6 +181,7 @@
     mounted () {
       this.options.size.w = this.$el.clientWidth
       this.options.size.h = this.$el.clientHeight
+      this.initTheme()
     },
     created () {
       this.reset()
@@ -284,6 +329,7 @@
             this.unSelectLink(`${link.source.id}-${link.target.id}`)
           } else {
             this.selectLink(link)
+            this.showLinkDrawer(link)
           }
         }
         this.updateSelection()
@@ -359,7 +405,6 @@
         this.dialogVisible = true
       },
       screenShot () {
-        debugger
         this.dialogVisible = false
         let name, bgColor, toSVG, svgAllCss
         let exportFunc
@@ -371,27 +416,127 @@
         
         exportFunc((err, url) => {
           if (!err) {
-            debugger
             if (!toSVG) saveImage.save(url, 'img')
             else saveImage.download(url, name)
           }
           this.screenShotDone(err)
         }, ...args)
       },
-      showDrawer(node) {
-        this.drawerVisible = true
+      showNodeDrawer(node) {
+        this.nodeDrawerVisible = true
         this.currentNode = node
       },
       cancelEditNode() {
-        this.drawerVisible = false
+        this.nodeDrawerVisible = false
         if (!this.selected[this.currentNode.id]) {
           this.$refs['proDThree'].cancleNodeSelect('select', this.currentNode.id)
         }
       },
       okEditNode(data) {
-        this.drawerVisible = false
+        this.nodeDrawerVisible = false
         console.log('确定更改', data)
         this.$refs['proDThree'].editNode(data)
+      },
+      showLinkDrawer(link) {
+        this.linkDrawerVisible = true
+        this.currentLink = link
+      },
+      cancelEditLink() {
+        this.linkDrawerVisible = false
+        if (!this.selected[this.currentLink.id]) {
+          this.$refs['proDThree'].cancleLinkSelect('select', this.currentLink.id)
+        }
+      },
+      okEditLink(data) {
+        this.linkDrawerVisible = false
+        console.log('确定更改', data)
+        this.$refs['proDThree'].editLink({...this.currentLink, ...data})
+      },
+      addTreeNodes() {
+        this.$refs['tree'] ? this.$refs['tree'].addTreeNodes() : false;
+      },
+      // 放大画布
+      bigChange() {
+        if(this.layout === 'reset') {
+          this.$refs['proDThree'] ? this.$refs['proDThree'].bigChange() : false;
+        } else {
+          this.$refs['tree'] ? this.$refs['tree'].bigChange() : false;
+        }
+      },
+      // 缩小画布
+      smallChange() {
+        if(this.layout === 'reset') {
+          this.$refs['proDThree'] ? this.$refs['proDThree'].smallChange() : false;
+        } else {
+          this.$refs['tree'] ? this.$refs['tree'].smallChange() : false;
+        }
+      },
+      // 画布中的节点居中
+      centerChange(){
+        if(this.layout === 'reset') {
+          this.$refs['proDThree'] ? this.$refs['proDThree'].centerChange() : false;
+        } else {
+          this.$refs['tree'] ? this.$refs['tree'].centerChange() : false;
+        }
+      },
+      // 保存更改为json文件
+      saveChange() {
+        this.$refs['proDThree'] ? this.$refs['proDThree'].saveChange() : false;
+      },
+      // reset layout布局
+      resetLayout() {
+        this.layout = 'reset'
+        this.$store.dispatch('changeIsCollapse', true)
+        this.$refs['proDThree'] ? this.$refs['proDThree'].changeCollapsed(true) : false;
+      },
+      treeLayout() {
+        this.layout = 'tree'
+        this.$store.dispatch('changeIsCollapse', false)
+        this.$refs['proDThree'] ? this.$refs['proDThree'].changeCollapsed(false) : false;
+      },
+      initTheme() {
+        const theme = this.$store.state.theme
+        this.changeTheme(theme)
+        // 同步更改切换主题的按钮的样式
+        document.getElementById('checkbox').checked = theme === 'dark';
+      },
+      // 更换主题
+      switchTheme(e) {
+        if (e.target.checked) { 
+          this.changeTheme('dark');
+        } else { 
+          this.changeTheme('light');
+        }
+      },
+      changeTheme(theme) {
+        if(theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark')
+          localStorage.setItem('theme', 'dark'); 
+          // 同步更新视图中的网格图
+          this.$refs['proDThree'].themeChange('dark');
+        }
+        if(theme == 'light') {
+          document.documentElement.setAttribute('data-theme', 'light')
+          localStorage.setItem('theme', 'light'); 
+          // 同步更新视图中的网格图
+          this.$refs['proDThree'].themeChange('light');
+        }
+      },
+      clearChange() {
+        if(this.layout === 'reset') {
+          this.$refs['proDThree'].clearChange();
+        } else {
+          this.$refs['tree'].clearChange();
+        }
+      },
+      changeCollapsed(bool) {
+        this.$refs['proDThree'] ? this.$refs['proDThree'].changeCollapsed(bool) : false;
+      },
+      addNode(node) {
+        this.$refs['proDThree'] ? this.$refs['proDThree'].addNode(node) : false;
+      },
+      addSvgNode(node) {
+        this.$refs['proDThree'] ? this.$refs['proDThree'].addNode(node) : false;
       }
     }
   }
@@ -429,5 +574,38 @@
       transform: scaleY(1) translateY(0)
     }
    }
-     
+.top-btn-div {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+}
+.content-flex-wrap {
+  display: flex;
+  /* justify-content: flex-start; */
+  justify-content: center;
+  /* min-height: 700px; */
+  height: calc(100vh - 70px);
+}
+.left-list {
+  width: 200px;
+  height: calc(100vh - 200px);
+}
+.left-list.collapsed {
+  width: 20px;
+}
+.left-list.notCollapsed {
+  width: 200px;
+}
+.right-svg-wrap {
+  width: calc(100% - 220px);
+  height: 100%;
+}
+.right-svg-wrap.collapsed {
+  width: calc(100% - 20px);
+}
+.right-svg-wrap.notCollapsed {
+  width: calc(100% - 220px);
+}
   </style>

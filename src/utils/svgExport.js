@@ -2,12 +2,9 @@ export default {
     NS: 'http://www.w3.org/2000/svg',
     // svgOrg: svg element
     // allCss : true includes all svg css styles, false includes only matched styles
-    export (svgOrg, allCss) {
-      debugger
-        console.log('调用了export', svgOrg, allCss)
+    exportSVG (svgOrg, allCss) {
       let svg = null
       if (this.isSvgData(svgOrg)) {
-        debugger
         svg = svgOrg.cloneNode(true)
         let childs = svgOrg.parentNode.querySelectorAll('*')
         let cssStyle = {}
@@ -24,7 +21,6 @@ export default {
             cssStyle[rule.selectorText] = rule.cssText
           }
         }
-        debugger
         let css = Object.values(cssStyle).join('\n')
         if (css) {
           let style = document.createElementNS(this.NS, 'style')
@@ -39,7 +35,6 @@ export default {
     },
   
     makeCanvas (width, height, background) {
-      debugger
       let canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
@@ -54,12 +49,10 @@ export default {
     },
   
     svgToImg (svg, canvas, cb) {
-      debugger
       let xml = this.serialize(svg)
       let img = new Image()
       let ctx = canvas.getContext('2d')
       img.onload = function () {
-        debugger
         ctx.drawImage(this, 0, 0)
         let png = canvas.toDataURL('image/png')
         cb(null, png, ctx)
@@ -133,7 +126,7 @@ export default {
           svgData.setAttribute(a, attribute)
         }
       }
-      let svg = this.export(svgData)
+      let svg = this.exportSVG(svgData)
       if (svg) return this.svgToUrl(this.serialize(svg))
       return null
     },

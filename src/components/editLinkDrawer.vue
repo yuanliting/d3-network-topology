@@ -1,37 +1,41 @@
 <template>
     <el-drawer
-      title="节点信息"
+      title="连接线信息"
       :visible.sync="drawerVisible"
       :before-close="handleClose"
       ref="drawer"
       direction="rtl"
-      custom-class="edit-node-drawer"
+      custom-class="edit-link-drawer"
     >
       <div class="demo-drawer__content">
-        <el-form :model="form" class="edit-node-drawer-form">
-            <el-form-item label="节点id" :label-width="formLabelWidth">
+        <el-form :model="form" class="edit-link-drawer-form">
+            <el-form-item label="线id" :label-width="formLabelWidth">
                 <el-input v-model="form.id" autocomplete="off" disabled></el-input>
             </el-form-item>
-            <el-form-item label="节点名称" :label-width="formLabelWidth">
+            <el-form-item label="线名称" :label-width="formLabelWidth">
                 <el-input v-model="form.name" autocomplete="off"></el-input>
             </el-form-item>
-            <el-form-item label="节点图片" :label-width="formLabelWidth">
-                <el-checkbox-group v-model="form.imgType" size="small" class="select-node-img-checkbox-group" @change="changeImg">
-                    <el-checkbox v-for="(value, key, index) in svgMap" :label="key" :key="index">
-                        <el-avatar shape="square" :src="`${value}`" style="background: transparent;"></el-avatar>
-                    </el-checkbox>
-                </el-checkbox-group>
+            <el-form-item label="线样式" :label-width="formLabelWidth">
+              <el-radio-group v-model="form.linkStyle" class="select-link-form-radio-group">
+                <el-radio label="solidLine"></el-radio>
+                <el-radio label="dottedLine"></el-radio>
+              </el-radio-group>
             </el-form-item>
-            <el-form-item label="边框样式" :label-width="formLabelWidth">
-              <el-select v-model="form.icon_border" placeholder="请选择边框样式" style="width:100%;">
-                <el-option label="circle" value="circle"></el-option>
-                <el-option label="rect" value="rect"></el-option>
-                <el-option label="diamond" value="diamond"></el-option>
-              </el-select>
+            <el-form-item label="线类型" :label-width="formLabelWidth">
+              <el-radio-group v-model="form.linkType" class="select-link-form-radio-group">
+                <el-radio label="straightLine"></el-radio>
+                <el-radio label="polyLine"></el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="是否删除" :label-width="formLabelWidth">
+              <el-radio-group v-model="form.isDelete" class="select-link-form-radio-group">
+                <el-radio :label="false">否</el-radio>
+                <el-radio :label="true">是</el-radio>
+              </el-radio-group>
             </el-form-item>
         </el-form>
       </div>
-      <div class="edit-node-drawer__footer">
+      <div class="edit-link-drawer__footer">
         <el-button @click="cancelForm">取 消</el-button>
         <el-button type="primary" @click="okForm" :loading="loading">{{ loading ? '更改中 ...' : '确 定' }}</el-button>
       </div>
@@ -45,12 +49,9 @@ export default {
       type: Boolean,
       default: false
     },
-    node: {
+    link: {
       type: Object,
       default: () => {return null}
-    },
-    svgMap: {
-      type: Object
     }
   },
   data() {
@@ -60,8 +61,9 @@ export default {
       form: {
         id: '',
         name: '',
-        imgType: [],
-        icon_border: ''
+        linkStyle: '',
+        linkType: 'straightLine',
+        isDelete: false
       },
       loading: false
     }
@@ -72,11 +74,11 @@ export default {
       deep: true,
       handler(val) {
         this.drawerVisible = val
-        if(val && this.node) {
-            this.form.id = this.node.id
-            this.form.name = this.node.name
-            this.form.imgType = this.node.imgType ? [this.node.imgType.toString()] : []
-            this.form.icon_border = this.node.icon_border
+        if(val && this.link) {
+            this.form.id = `${this.link.source.id}-${this.link.target.id}`
+            this.form.name = this.link.name
+            this.form.linkStyle = this.link.linkStyle
+            this.form.linkType = this.link.linkType
         }
       }  
     }
@@ -91,26 +93,20 @@ export default {
     },
     okForm() {
       this.$emit('ok', this.form)
-    },
-    changeImg(val) {
-        console.log('改变之', val)
-        if(val && val.length > 0) {
-            this.form.imgType = [val[val.length - 1]]
-        }
     }
   }
 }
 </script>
 <style>
-.edit-node-drawer .el-drawer__header{
+.edit-link-drawer .el-drawer__header{
     margin-bottom: 20px;
     padding: 12px 12px;
     border-bottom: 1px solid #DCDFE6;
 }
-.edit-node-drawer .el-drawer__body {
+.edit-link-drawer .el-drawer__body {
     height: calc(100vh - 59px);
 }
-.edit-node-drawer .edit-node-drawer__footer {
+.edit-link-drawer .edit-link-drawer__footer {
     position: absolute;
     width: 100%;
     bottom: 0px;
@@ -120,13 +116,13 @@ export default {
     border-top: 1px solid #DCDFE6;
     z-index: 2;
 }
-.edit-node-drawer .edit-node-drawer__footer .el-button {
+.edit-link-drawer .edit-link-drawer__footer .el-button {
     flex: 1;
 }
-.edit-node-drawer-form  {
+.edit-link-drawer-form  {
   margin-bottom: 101px;
 }
-.edit-node-drawer-form .el-form-item__content {
+.edit-link-drawer-form .el-form-item__content {
     width: 75% !important;
 }
 .select-node-img-checkbox-group {
@@ -140,5 +136,12 @@ export default {
     display: flex;
     align-items: center;
     justify-content: flex-start;
+}
+::v-deep .select-link-form-radio-group{
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start;
+    height: 40px;
 }
 </style>

@@ -1,12 +1,5 @@
 <template>
   <div id="content">
-    <div class="top-btn-div">
-      <el-button type="primary" class="sacle-big-btn" @click="bigChange()">放大</el-button>
-      <el-button type="primary" class="sacle-small-btn" @click="smallChange()">缩小</el-button>
-      <el-button type="primary" class="sacle-small-btn" @click="centerChange()">居中</el-button>
-      <el-button type="primary" class="save-btn" @click="saveChange()">保存更改</el-button>
-    </div>
-    
     <div id="topology_container">
       <svg id="svg1" ref="svg"></svg>
     </div>
@@ -91,93 +84,137 @@ export default {
           {
             id: "Myriel",
             name: 'Myriel',
-            imgType: 1
+            imgType: 1,
+            icon_border: 'circle',
+            icon: 'svg'
           },
           {
             id: "Napoleon",
             name: "Napoleon",
-            imgType: 1
+            imgType: 1,
+            icon_border: 'circle',
+            icon: 'svg'
           },
           {
             id: "Labarre",
             name: "Labarre",
-            imgType: 2
+            imgType: 2,
+            icon_border: 'circle',
+            icon: 'svg'
           },
           {
             id: "Valjean",
             name: "Valjean",
-            imgType: 2
+            imgType: 2,
+            icon_border: 'circle',
+            icon: 'svg'
           },
           {
             id: "Baptistines",
             name: "Baptistines",
-            imgType: 1
+            imgType: 1,
+            icon_border: 'circle',
+            icon: 'svg'
           },
           {
             id: "MmeMagloire",
             name: "MmeMagloire",
-            imgType: 1
+            imgType: 1,
+            icon_border: 'circle',
+            icon: 'svg'
           },
           {
             id: "网络",
             name: "网络",
-            imgType: 7
+            imgType: 7,
+            icon_border: 'circle',
+            icon: 'svg'
           },
           {
             id: 'docker',
             name: "docker",
-            imgType: 8
+            imgType: 8,
+            icon_border: 'circle',
+            icon: 'svg'
           },
           {
             id: '云',
             name: "云",
-            imgType: 5
+            imgType: 5,
+            icon_border: 'circle',
+            icon: 'svg'
           },
           {
             id: '数据库',
             name: "数据库",
-            imgType: 6
+            imgType: 6,
+            icon_border: 'circle',
+            icon: 'svg'
           }
         ],
         links: [
           {
             source: "Napoleon",
             target: "Myriel",
+            linkStyle: 'solidLine',
+            linkType: 'polyLine',
+            pathName: '线的名字',
             value: 1
           },
           {
             source: "Valjean",
             target: "Labarre",
+            linkStyle: 'solidLine',
+            linkType: 'straightLine',
+            pathName: '',
             value: 1
           },
           {
             source: "Baptistines",
             target: "Myriel",
+            linkStyle: 'solidLine',
+            linkType: 'straightLine',
+            pathName: '',
             value: 8
           },
           {
             source: "MmeMagloire",
             target: "Myriel",
+            linkStyle: 'solidLine',
+            linkType: 'straightLine',
+            pathName: '',
             value: 10
           },
           {
             source: "docker",
             target: "网络",
+            linkStyle: 'solidLine',
+            linkType: 'straightLine',
+            pathName: '',
             value: 1
           },
           {
             source: "数据库",
             target: "云",
+            linkStyle: 'solidLine',
+            linkType: 'straightLine',
+            pathName: '',
             value: 1
           },
           {
             source: "云",
             target: "docker",
+            linkStyle: 'solidLine',
+            linkType: 'straightLine',
+            pathName: '',
             value: 1
           },
           {
             source: "数据库",
             target: "网络",
+            linkStyle: 'solidLine',
+            linkType: 'straightLine',
+            pathName: '',
             value: 1
           }
         ]
@@ -196,7 +233,7 @@ export default {
       container: null,
       symbolSize: 40,
       padding: 4,
-      svg_circle: null,
+      node_icon_border: null,
       svg_rect: null,
       svg_text: null,
       svg_defs: null,
@@ -219,9 +256,12 @@ export default {
       moveDiffX: 0,
       moveDiffY: 0,
       groupsOne: [
-        {id: 'group-cms', name: 'cms', group: 1, imgType: 1, nodes: [{id: 'jiaohuanji', name: '交换机', group: 1, imgType: 1}, {id: 'app', name: 'App', group: 1, imgType: 1}]},
-        {id: 'group-sop', name: 'sop', group: 2, imgType: 1, nodes: [{id: 'fuwiqi', name: '服务器', group: 2, imgType: 2}, {id: 'wawonglong', name: '网络2', group: 2, imgType: 3}]}
-      ]
+        {id: 'group-cms', name: 'cms', group: 1, imgType: 11, icon_border: 'circle', nodes: [{id: 'jiaohuanji', name: '交换机', group: 1, imgType: 10, icon_border: 'circle'}, {id: 'app', name: 'App', group: 1, imgType: 1, icon_border: 'circle'}]},
+        {id: 'group-sop', name: 'sop', group: 2, imgType: 9, icon_border: 'circle', nodes: [{id: 'fuwiqi', name: '服务器', group: 2, imgType: 2, icon_border: 'circle'}, {id: 'wawonglong', name: '网络2', group: 2, imgType: 3, icon_border: 'circle'}]}
+      ],
+      mainCirceRadius: 0,
+      lineTextGroup: null,
+      lineTexts: null
     }
   },
   watch: {
@@ -255,7 +295,8 @@ export default {
         group: group.id,
         groupRadius: 20,
         members: group.nodes,
-        imgType: 1,
+        imgType: group.imgType,
+        icon_border: group.icon_border,
         type: 'group'
       };
     }));
@@ -276,6 +317,7 @@ export default {
             name: node.name,
             group: group.id,
             imgType: node.imgType,
+            icon_border: group.icon_border,
             type: 'member'
           };
         }));
@@ -283,13 +325,16 @@ export default {
           return {
             source: group.id,
             target: node.id,
+            linkStyle: 'solidLine',
+            linkType: 'straightLine',
+            pathName: '',
             value: 1
           };
         }));
       });
-      console.log('线---', vm.graph.links)
       // this.readJson()
-      this.innitRender()
+      this.mainCirceRadius = vm.graph.nodes.length / 2
+      this.initRender()
       this.$emit('allNodes', this.simulation.nodes())
       console.log('一共有多少条线', this.simulation.force('link').links())
       this.$emit('allLinks', this.simulation.force('link').links())
@@ -307,13 +352,85 @@ export default {
           console.log('数据加载成功:', JSON.parse(data));
           // 在这里处理你的数据
           this.graph = JSON.parse(data)
-          this.innitRender()
+          this.initRender()
           this.$emit('allNodes', this.simulation.nodes())
           this.$emit('allLinks', this.simulation.force('link').links())
         })
         .catch(error => {
           console.error('数据加载出错:', error);
         });
+    },
+    themeChange(theme) {
+      this.$store.dispatch('changeTheme', theme);
+      // 更改表格线颜色
+      this.changeDiagramPatternColor()
+      // 更换node颜色
+      this.changeNodeColor()
+      // 更改箭头颜色
+      this.changeDefsColor()
+      // 修改线上的文字颜色
+      this.changeLinkTextColor()
+    },
+    /**
+     * 更改表格线颜色
+     */
+    changeDiagramPatternColor() {
+      const diagramPattern =  d3.select("#diagramPattern");
+      if(diagramPattern && diagramPattern._groups && diagramPattern._groups.length > 0 && diagramPattern._groups[0][0]) {
+        if(diagramPattern._groups[0][0].children && diagramPattern._groups[0][0].children.length > 0) {
+          for (let i = 0; i < diagramPattern._groups[0][0].children.length; i++) {
+            const element = diagramPattern._groups[0][0].children[i];
+            element.attributes.stroke.value = this.$store.state.theme === 'dark' ? "#222" : "#fafafa"
+          }
+        }
+      }
+    },
+    /**
+     * 更改所有节点的背景色
+     */
+    changeNodeColor() {
+      const allNode = d3.selectAll(".node-item");
+      if(allNode && allNode._groups && allNode._groups[0].length > 0) {
+        for (let index = 0; index < allNode._groups[0].length; index++) {
+          const element = allNode._groups[0][index];
+          const circle = d3.select(`g#${element.id} circle.node-circle-bg`);
+          const text = d3.select(`g#${element.id} text.node`)
+          if(circle && circle._groups && circle._groups[0].length > 0) {
+            const circleItem = circle._groups[0][0]
+            circleItem.attributes.fill.value = this.$store.state.theme === 'dark' ? '#000' : '#fff'
+          }
+          if(text && text._groups && text._groups[0].length > 0) {
+            const textItem = text._groups[0][0]
+            textItem.attributes.fill.value = this.$store.state.theme === 'dark' ? '#fff' : '#000'
+          }
+        }
+      }
+    },
+    /**
+     * 修改箭头颜色
+     */
+    changeDefsColor() {
+      const defs = d3.select('defs');
+      if(defs && defs._groups && defs._groups.length > 0 && defs._groups[0][0]) {
+        if(defs._groups[0][0].children && defs._groups[0][0].children.length > 0) {
+          for (let i = 0; i < defs._groups[0][0].children.length; i++) {
+            const element = defs._groups[0][0].children[i];
+            element.children[0].attributes.fill.value = this.$store.state.theme === 'dark' ? '#000' : '#fff'
+          }
+        }
+      }
+    },
+    changeLinkTextColor() {
+      const linkTexts =  d3.select(".link_text_container");
+      console.log(linkTexts)
+      if(linkTexts && linkTexts._groups && linkTexts._groups.length > 0 && linkTexts._groups[0][0]) {
+        if(linkTexts._groups[0][0].children && linkTexts._groups[0][0].children.length > 0) {
+          for (let i = 0; i < linkTexts._groups[0][0].children.length; i++) {
+            const element = linkTexts._groups[0][0].children[i];
+            element.children[0].attributes.fill.value = this.$store.state.theme === 'dark' ? '#8e8c8c' : '#000'
+          }
+        }
+      }
     },
     handlerChangeTool(val) {
       console.log('你改变了tool', val)
@@ -347,6 +464,13 @@ export default {
       this.links = this.simulation.force('link').links()
     },
     /**
+     * 改变画布宽度
+     */
+    changeCollapsed(bool) {
+        this.svg = d3.select("#svg1")
+        .attr("width", '100%')
+    },
+    /**
      * 点击鼠标右键某一项调用的方法（节点鼠标右键自定义的组件）
      * @param {*} type 
      */
@@ -360,7 +484,7 @@ export default {
       }
       if (type === 'edit') {
         console.log('更改节点')
-        this.$emit('showDrawer', this.currentNode)
+        this.$emit('showNodeDrawer', this.currentNode)
       }
       if (type === 'delete') {
         this.cancleNodeSelect('select',this.currentNode.id)
@@ -393,11 +517,42 @@ export default {
       const index = this.graph.nodes.findIndex((e) => { return e.id === node.id })
       if (index > -1) {
         this.graph.nodes[index].name = node.name
-        // this.graph.nodes[index].group = Number(node.group[0])
         this.graph.nodes[index].imgType = Number(node.imgType[0])
         d3.select(`#${node.id} text`).text(node.name)
-        debugger
-        console.log(99, d3.select(`#${node.id} .node-svg-g svg`))
+        if(node.icon_border !== this.graph.nodes[index].icon_border) {
+          // 修改icon_border
+          d3.select(`#${node.id} .node-${this.graph.nodes[index].icon_border}-bg`).remove()
+          if(node.icon_border === 'rect') {
+            d3.select(`#${node.id}`)
+              .append('rect')
+              .attr("x", () => -(this.symbolSize / 2 + this.padding + 2.6))
+              .attr("y", -(this.symbolSize / 2 + this.padding + 2.6))
+              .attr("width", (this.symbolSize / 2 + this.padding + 2.6)*2)
+              .attr("height", (this.symbolSize / 2 + this.padding + 2.6)*2)
+              .attr('fill', '#fff')
+              .attr('class', 'node-rect-bg');
+          }
+          if(node.icon_border === 'diamond') {
+            d3.select(`#${node.id}`)
+              .append('rect')
+              .attr("x", () => -(this.symbolSize / 2 + this.padding + 2.6))
+              .attr("y", -(this.symbolSize / 2 + this.padding + 2.6))
+              .attr("width", (this.symbolSize / 2 + this.padding + 2.6)*2)
+              .attr("height", (this.symbolSize / 2 + this.padding + 2.6)*2)
+              .attr('fill', '#fff')
+              .attr('transform', 'rotate(45)')
+              .attr('class', 'node-diamond-bg');
+          }
+          if(node.icon_border === 'circle') {
+            d3.select(`#${node.id}`)
+              .append('circle')
+              .attr("r", this.symbolSize / 2 + this.padding + 2.6)
+              .attr('class', 'node-circle-bg')
+              .attr('fill',() => this.$store.state.theme === 'dark' ? '#000' : '#fff')
+          }
+        }
+        this.graph.nodes[index].icon_border = node.icon_border
+        // 修改icon
         if (d3.select(`#${node.id} image`)) {
           d3.select(`#${node.id} image`).remove()
         } else {
@@ -406,14 +561,17 @@ export default {
         if (d3.select(`#${node.id} .node-svg-g`)) {
           d3.select(`#${node.id} .node-svg-g`).remove()
         }
-        this.cancleNodeSelect('select',this.currentNode.id)
+        // 节点如果是选中状态那就还是选中，如果不是就取消
+        if(this.isNodeSelected(this.currentNode.id)) {
+          this.cancleNodeSelect('select',this.currentNode.id)
+        }
+        // 修改icon
         if (this.svgImgBlob && this.svgImgBlob.length > 0) {
           for (let i = 0; i < this.svgImgBlob.length; i++) {
             const element = this.svgImgBlob[i];
             if (i === Number(node.imgType) && element) {
               // 为每个节点添加一个克隆的SVG
               const clone = document.importNode(element, true);
-              console.log(clone)
               if (d3.select(`#${node.id} image`)) {
                 d3.select(`#${node.id}`).append("g")
                   .attr('transform', 'translate(-16, -16)')
@@ -430,6 +588,58 @@ export default {
       } else {
         console.log('没找到', node)
       }
+    },
+    /**
+     * 编辑连接线
+     * @param {*} link 线对象
+     */
+    editLink(link) {
+      // 找到数据，更新
+      const scourceId = link.source.id
+      const targetId = link.target.id
+      console.log(link)
+      const index = this.graph.links.findIndex((e) => { return e.source.id === scourceId && e.target.id === targetId })
+      console.log(this.graph.links, index)
+      if(index > -1) {
+        if(link.isDelete) {
+          return this.removeLink(`${scourceId}-${targetId}`)
+        }
+        this.graph.links[index].name = link.name
+        this.graph.links[index].linkStyle = link.linkStyle
+        d3.select(`#${scourceId}-${targetId}`).attr('stroke-dasharray', link.linkStyle === 'solidLine' ? 0 : 3)
+        if(this.graph.links[index].linkType !== link.linkType) {
+          this.graph.links[index].linkType = link.linkType;
+          if(link.linkType === 'polyLine') {
+            d3.select(`#${scourceId}-${targetId}`).attr("d", this.getLinkPos(link))
+          }
+          if(link.linkType === 'straightLine') {
+            d3.select(`#${scourceId}-${targetId}`).attr("d",  this.getLinkPath(link))
+          }
+        }
+      }
+    },
+    getLinkPos(link) {
+      let plus = this.getPlusByIndex(link)
+      let x1Plus = link.source.x + plus.x1Plus
+      let y1Plus = link.source.y + plus.y1Plus
+      let x2Plus = link.target.x + plus.x2Plus
+      let y2Plus = link.target.y + plus.y2Plus
+      let angle = this.getAngle(link.source.x, link.source.y, link.target.x, link.target.y)
+      return this.getPolyPos(x1Plus, y1Plus, x2Plus, y2Plus, angle)
+    },
+    getPlusByIndex(link) {
+      return {
+        x1Plus: Math.cos(Math.PI / 180 * link.source.index * 90) * this.mainCirceRadius,
+        y1Plus: Math.sin(Math.PI / 180 * link.source.index * 90) * this.mainCirceRadius,
+        x2Plus: Math.cos(Math.PI / 180 * link.target.index * 90) * this.mainCirceRadius,
+        y2Plus: Math.sin(Math.PI / 180 * link.target.index * 90) * this.mainCirceRadius
+      }
+    },
+    getAngle(e, t, a, n) {
+      return (180 * Math.atan2(n - t, a - e) / Math.PI + 360) % 360
+    },
+    getPolyPos(e, t, a, n, i) {
+      return i > 225 && i < 315 || i > 45 && i < 135 ? "M".concat(e, ",").concat(t, " ").concat(e, ",").concat(t + (n - t) / 2, " ").concat(a, ",").concat(n - (n - t) / 2, " ").concat(a, ",").concat(n) : "M".concat(e, ",").concat(t, " ").concat(e + (a - e) / 2, ",").concat(t, " ").concat(a - (a - e) / 2, ",").concat(n, " ").concat(a, ",").concat(n)
     },
     /**
      * 删除节点以及节点的连线
@@ -491,7 +701,7 @@ export default {
         .style("stroke-width", "2px")
         .style("opacity", "0").
         attr('id', 'move-line-path');
-      d3.select(`#${node.id}`).selectAll("circle").style("cursor", "pointer")
+      d3.select(`#${node.id}`).selectAll(`.node-${node.icon_border}-bg`).style("cursor", "pointer")
       d3.select("#svg1").on("mousemove.add-link", function (event) {
         newLine.attr("x2", event.x - 74).attr("y2", event.y - 65);
         newLine.style("opacity", 1)
@@ -500,7 +710,7 @@ export default {
       d3.select("#svg1").on("click.add-link", function (t) {
         newLine.remove();
         d3.select("#svg1").on("mousemove.add-link", null);
-        d3.select(`#${node.id}`).selectAll("circle").style("cursor", "move").on("click.add-link", null);
+        d3.select(`#${node.id}`).selectAll(`.node-${node.icon_border}-bg`).style("cursor", "move").on("click.add-link", null);
         if (t.target.parentNode && t.target.parentNode.__data__) {
           that.isNodeToCreateLine(node, t.target.parentNode.__data__)
         }
@@ -595,6 +805,19 @@ export default {
       }
     },
     /**
+     * 判断节点被选中
+     * @param nodeId 
+     */
+    isNodeSelected(nodeId) {
+      const node = d3.select(`#${nodeId}`)
+      let have = false
+      if(node && node._groups && node._groups.length > 0) {
+        const classList = d3.select(`#${nodeId}`)._groups[0][0].classList[0]
+        have = classList.includes('selected')
+      }
+      return have
+    },
+    /**
      * 删除节点
      * @param {*} nodeId 节点id
      */
@@ -610,6 +833,7 @@ export default {
     removeLink(LinkId) {
       console.log('删除的线', LinkId)
       d3.select(`#${LinkId}`).remove()
+      d3.select(`#marker-${LinkId}`).remove()
     },
     // 清除画布中所有的选中
     clearAllSelect(type) {
@@ -720,6 +944,13 @@ export default {
     // 取消一个鼠标事件add-node-ev
     deleteClickAddNode() {
       this.svg.on('click.add-node-ev', null)
+    },
+    addNode(nNode) {
+      const that = this
+      d3.timeout(function () {
+        that.graph.nodes.push(nNode);
+        that.update({ nNode, nLink: null });
+      }, 500);
     },
     /**
      * 添加一个节点和链接线
@@ -939,15 +1170,19 @@ export default {
       this.svg.on('dblclick.zoom', null);
       this.svg.on('touchstart.zoom', null);
     },
+    // 清空画布
+    clearChange() {
+      d3.select("#svg1 g").selectAll('*').remove();
+    },
     // 初始化画布
-    async innitRender() {
-      const width = $("#topology_container").width() * 0.9;
+    async initRender() {
+      const width = $("#topology_container").width();
       const height = $("#topology_container").height();
 
       // 每个对象必须包含source target属性，表示边的起点和终点，属性的值是节点的id，默认是节点在数组中的索引，同时也可以自定义id getter：
       // d3.forceLink().id(d => d.id)
       const scale = 1;
-      let vm = this
+      let vm = this;
 
       this.simulation = d3.forceSimulation(this.graph.nodes) //创建一个力导向图模拟对象
         .force("link", d3.forceLink(this.graph.links).id(d => d.id)) // 连接力，拉动节点相互连接，好像节点之间有一个弹簧
@@ -977,69 +1212,17 @@ export default {
           }
         })
 
+      // 添加一个rect填充的是方格线
+      this.svg.append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "url(#diagramPattern)");
+
       this.container = this.svg.append('g')
         .attr('transform', 'scale(' + scale + ')');
 
       // 连接线
-      this.link = this.container.append('g')
-        .classed('link_container', true)
-        .selectAll('.link')
-        .data(this.graph.links)
-        .enter()
-        .append('path')
-        .attr('class', 'link')
-        .classed('link_item', true)
-        .attr(
-          'marker-end', (link) => 'url(#' + 'marker-' + `${link.source.id}-${link.target.id}` + ')'
-        ).attr(
-          'd', link => this.genLinkPath(link),
-        ).attr(
-          'id', (link) => `${link.source.id}-${link.target.id}`
-        )
-        .attr('stroke-width', 3)
-        .on('click', function ($event, d) {
-          console.log('你点击线了', d)
-          vm.$emit("linkClick", $event, d)
-        })
-        .on('mouseover', function () {
-          const id = d3.select(this).attr('marker-end').split('url(#marker-')[1].split(')')[0]
-          // const source = d.target.__data__.source
-          // const target = d.target.__data__.target
-          d3.select(this).classed('focus focusing', true)
-          vm.svg.select('defs').selectAll('marker')
-            .each(function (m) {
-              if (`${m.source.id}-${m.target.id}` === id) {
-                d3.select(this).classed('focus focusing', true)
-              }
-            })
-          // vm.svg.selectAll('g.node-item').each(function (item) {
-          //   if (source.id === item.id) {
-          //     d3.select(this).classed('focus focusing', true)
-          //   }
-          //   if (target.id === item.id) {
-          //     d3.select(this).classed('focus focusing', true)
-          //   }
-          // })
-        }).on('mouseout', function () {
-          const id = d3.select(this).attr('marker-end').split('url(#marker-')[1].split(')')[0]
-          // const source = d.target.__data__.source
-          // const target = d.target.__data__.target
-          d3.select(this).classed('focus focusing', false);
-          vm.svg.select('defs').selectAll('marker')
-            .each(function (m) {
-              if (`${m.source.id}-${m.target.id}` === id) {
-                d3.select(this).classed('focus focusing', false)
-              }
-            })
-          // vm.svg.selectAll('g.node-item').each(function (item) {
-          //   if (source.id === item.id) {
-          //     d3.select(this).classed('focus focusing', false)
-          //   }
-          //   if (target.id === item.id) {
-          //     d3.select(this).classed('focus focusing', false)
-          //   }
-          // })
-        });
+      this.drawLinkLine();
+      
+      // 线的名字
+      this.drawLinkText();
 
       //节点容器
       this.node = this.container.selectAll(".node")
@@ -1070,18 +1253,38 @@ export default {
           d3.select(this).classed('focus focusing', false)
         }).call(this.drag(this.simulation)); // 使节点可以拖动
 
-      this.svg_circle = this.node.filter(item => !item.id.includes('group-')).append('circle')
-        .attr("r", function(d) {
-            return d.id.includes('group-') ? (vm.symbolSize / 2 + vm.padding + 2.6)*10 : vm.symbolSize / 2 + vm.padding + 2.6; // 组节点和组内节点圆圈大小不同
-        })
-        .attr('class', 'node-bg')
+    this.node.filter(item => item.icon_border ==='circle')
+      .append('circle')
+      .attr("r", vm.symbolSize / 2 + vm.padding + 2.6)
+      .attr('class', 'node-circle-bg')
+      .attr('fill',() => this.$store.state.theme === 'dark' ? '#000' : '#fff')
+
+    this.node.filter(item => item.icon_border ==='rect')
+      .append('rect')
+      .attr("x", () => -(vm.symbolSize / 2 + vm.padding + 2.6))
+      .attr("y", -(vm.symbolSize / 2 + vm.padding + 2.6))
+      .attr("width", (vm.symbolSize / 2 + vm.padding + 2.6)*2)
+      .attr("height", (vm.symbolSize / 2 + vm.padding + 2.6)*2)
+      .attr('fill', '#fff')
+      .attr('class', 'node-rect-bg');
+
+      this.node.filter(item => item.icon_border ==='diamond')
+        .append('rect')
+        .attr("x", () => -(this.symbolSize / 2 + this.padding + 2.6))
+        .attr("y", -(this.symbolSize / 2 + this.padding + 2.6))
+        .attr("width", (this.symbolSize / 2 + this.padding + 2.6)*2)
+        .attr("height", (this.symbolSize / 2 + this.padding + 2.6)*2)
+        .attr('fill', '#fff')
+        .attr('transform', 'rotate(45)')
+        .attr('class', 'node-diamond-bg');
 
       // 节点文字
       this.svg_text = this.node.data(this.graph.nodes)
         .append("text")
         .attr("class", "node")
+        .attr('fill',() => this.$store.state.theme === 'dark' ? '#fff' : '#000')
         .text(function (d) {
-          return d.id;
+          return d.name;
         })
         .attr("dx", function() {
             return '0.2em';
@@ -1180,14 +1383,144 @@ export default {
 
       marker.append('svg:path')
         .attr('d', 'M 0 0 L 50 10 L 0 15 z')
-        .attr('fill', '#fff')
+        .attr('fill',() => this.$store.state.theme === 'dark' ? '#000' : '#fff')
 
       marker.append('svg:path')
         .attr('d', 'M 0 0 L 10 5 L 0 10 z')
         .attr('class', 'arrow')
 
+      // 方格线
+      let s = Array(20);
+      this.svg.append("pattern")
+      .attr("id", "diagramPattern")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", 100)
+      .attr("height", 100)
+      .attr("patternUnits", "userSpaceOnUse")
+      .selectAll("path")
+      .data(s)
+      .enter()
+      .append("path")
+      .attr("stroke", () => {
+        console.log(this.$store.state.theme, this.$store.state.theme === 'dark')
+        return this.$store.state.theme === 'dark' ? "#222" : "#fafafa"
+      })
+      .attr("stroke-width", "0.25")
+      .attr("dashArray", "")
+      .attr("d", (e,t)=>0 === t ? "M0,0.5 L100,0.5 Z" : t < 10 && t > 0 ? 
+        "M0,".concat(10 * t, ".125 L100,")
+        .concat(10 * t, ".125 Z") : 10 === t ? "M0.5,0 L0.5,100 Z" : t > 10 ? 
+        "M".concat((t - 10) * 10, ".125,0 L").concat((t - 10) * 10, ".125,100 Z") : void 0
+      )
+            
+
       this.bindZoom(); //绑定zoom
 
+    },
+    changeDiagramPattern(color) {
+
+    },
+    // 画节点链接线
+    drawLinkLine () {
+      const vm = this
+      this.link = this.container.append('g')
+        .classed('link_container', true)
+        .selectAll('.link')
+        .data(this.graph.links)
+        .enter()
+        .append('path')
+        .attr('class', 'link')
+        .classed('link_item', true)
+        .attr(
+          'marker-end', (link) => 'url(#' + 'marker-' + `${link.source.id}-${link.target.id}` + ')'
+        ).attr('d', link => {
+          return link.linkType === 'straightLine' ? this.getLinkPath(link) : this.getLinkPos(link)
+        }).attr(
+          'id', (link) => `${link.source.id}-${link.target.id}`
+        )
+        .attr('stroke-width', 3)
+        .attr('stroke-dasharray', (link) => {return link.linkStyle === 'solidLine' ? 0 : 3 })
+        .on('click', function ($event, d) {
+          vm.$emit("linkClick", $event, d)
+        })
+        .on('mouseover', function () {
+          const id = d3.select(this).attr('marker-end').split('url(#marker-')[1].split(')')[0]
+          d3.select(this).classed('focus focusing', true)
+          vm.svg.select('defs').selectAll('marker')
+            .each(function (m) {
+              if (`${m.source.id}-${m.target.id}` === id) {
+                d3.select(this).classed('focus focusing', true)
+              }
+            })
+        }).on('mouseout', function () {
+          const id = d3.select(this).attr('marker-end').split('url(#marker-')[1].split(')')[0]
+          d3.select(this).classed('focus focusing', false);
+          vm.svg.select('defs').selectAll('marker')
+            .each(function (m) {
+              if (`${m.source.id}-${m.target.id}` === id) {
+                d3.select(this).classed('focus focusing', false)
+              }
+            })
+        });
+    },
+    // 连接线上的文字
+    drawLinkText () {
+      if (this.lineTextGroup) {
+        this.lineTexts
+          .attr('transform', this.getTransform)
+      } else {
+        this.lineTextGroup = this.container.append('g').attr('class', 'link_text_container')
+        this.lineTexts = this.lineTextGroup
+          .selectAll('.linetext')
+          .data(this.graph.links)
+          .enter()
+          .append('text')
+          .attr('dy', -2)
+          .attr('transform', this.getTransform)
+          .on('click', (l) => { 
+            console.log('节点上的文字', l)
+          })
+
+        this.lineTexts
+          .append('tspan')
+          .attr('class', 'link-text')
+          .attr('id', (l) => `link_text_${l.source.id}_${l.target.id}`)
+          .text((l) => l.pathName)
+          .attr('fill', this.$store.state.theme === 'dark' ? '#8e8c8c' : '#000')
+      }
+    },
+    calculateTextLength(fontSize) {
+      // 假设字体大小和容器宽度都是以像素为单位
+      const charactersPerPixel = 0.6; // 这是一个经验值，根据不同字体可能需要调整
+      return Math.floor(fontSize * charactersPerPixel);
+    },
+    getTransform (link) {
+      let s = this.graph.nodes[link.source.index];
+      let t = this.graph.nodes[link.target.index];
+      let p = this.getNodeCenter(s.x, s.y, t.x, t.y);
+      let angle = this.getNodeAngle(s.x, s.y, t.x, t.y);
+      let textWidth = 0
+      const text = d3.select(`#link_text_${link.source.id}_${link.target.id}`);
+      if(text._groups[0].length > 0 && text._groups[0][0]) {
+        textWidth = text.node().getBBox().width
+      }
+      // console.log('文字宽度', textWidth/2)
+      if (s.x > t.x && s.y < t.y || s.x < t.x && s.y > t.y) {
+        angle = -angle
+      }
+      return 'translate(' + p[0] + ',' + (p[1] + textWidth/2) + ') rotate(' + angle + ')'
+    },
+    // 计算两点的中心点(用于确认摆放在连接线上的文字的位置)
+    getNodeCenter (x1, y1, x2, y2) {
+      return [(x1 + x2) / 2, (y1 + y2) / 2]
+    },
+    // 计算两点角度
+    getNodeAngle (x1, y1, x2, y2) {
+      var x = Math.abs(x1 - x2);
+      var y = Math.abs(y1 - y2);
+      var z = Math.sqrt(x * x + y * y);
+      return Math.round((Math.asin(y / z) / Math.PI * 180));
     },
     // 拖拽
     drag() {
@@ -1293,10 +1626,13 @@ export default {
       });
     },
     ticked() {
-      this.link.attr('d', d => this.genLinkPath(d));
+      this.link.attr('d', d => {
+        return d.linkType === 'straightLine' ? this.getLinkPath(d) : this.getLinkPos(d)
+      });
+      this.drawLinkText()
       this.node.attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
     },
-    genLinkPath(d) {
+    getLinkPath(d) {
       let sx = this.graph.nodes[d.source.index].x;
       let tx = this.graph.nodes[d.target.index].x;
       let sy = this.graph.nodes[d.source.index].y;
@@ -1342,56 +1678,72 @@ export default {
             d3.select(this).classed('focus focusing', false)
           }).call(this.drag(this.simulation));
 
-        this.svg_circle = this.node.filter(item => item.id === nNode.id).append('circle')
+        this.node_icon_border = this.node.filter(item => item.id === nNode.id).append('circle')
           .attr('r', this.symbolSize / 2 + this.padding + 2.6)
-          .attr('class', 'node-bg')
+          .attr('class', 'node-circle-bg')
+          .attr('fill',() => this.$store.state.theme === 'dark' ? '#000' : '#fff')
 
         // 节点文字
         this.svg_text = this.node.filter(item => item.id === nNode.id)
           .append("text")
           .attr("class", "node")
           .text(function (d) {
-            return d.id;
+            return d.name;
           })
           .attr("dx", "0.2em")
           .attr("dy", "3em")
           .merge(this.svg_text)
+        
+      // 添加svg
+      if(nNode.icon === 'svg') {
+        this.node.filter(item => item.id === nNode.id)
+          .append("g")
+          .attr('transform', 'translate(-16, -16)')
+          .attr('fill', '#111')
+          .attr('class', `node-svg-g`)
+          .attr('id', (n) => `g-${n.id}`)
+          // 为每个节点添加一个克隆的SVG
+          var clone = document.importNode(this.svgImgBlob[nNode.imgType], true);
+          d3.select(`#g-${nNode.id}`).append(() => clone).attr('width', 32).attr('height', 32);
+      }
 
         // 节点图片
-        this.node.filter(item => item.id === nNode.id)
-          .append("image")
-          .attr("width", function (d) {
-            var width = 35;
-            switch (d.imgType) {
-              case '0':
-                width = 2 * width;
-                break;
-              case '1':
-                width = 2 * width;
-                break;
-              default:
-                break;
-            }
-            return width;
-          })
-          .attr("height", function (d) {
-            var height = 38;
-            switch (d.imgType) {
-              case '0':
-                height = 2 * height;
-                break;
-              case '1':
-                height = 2 * height;
-                break;
-              default:
-                break;
-            }
-            return height;
-          })
-          .attr("xlink:href", function (d) {
-            return that.imgMap[d.imgType];
-          }).attr("x", -17)
-          .attr("y", -19);
+        if(nNode.icon === 'img') {
+          this.node.filter(item => item.id === nNode.id)
+            .append("image")
+            .attr("width", function (d) {
+              var width = 35;
+              switch (d.imgType) {
+                case '0':
+                  width = 2 * width;
+                  break;
+                case '1':
+                  width = 2 * width;
+                  break;
+                default:
+                  break;
+              }
+              return width;
+            })
+            .attr("height", function (d) {
+              var height = 38;
+              switch (d.imgType) {
+                case '0':
+                  height = 2 * height;
+                  break;
+                case '1':
+                  height = 2 * height;
+                  break;
+                default:
+                  break;
+              }
+              return height;
+            })
+            .attr("xlink:href", function (d) {
+              return that.imgMap[d.imgType];
+            }).attr("x", -17)
+            .attr("y", -19);
+        }
 
       }
 
@@ -1496,7 +1848,7 @@ export default {
      * @param {*} allCss 
      */
     svgScreenShot(cb, toSvg, background, allCss) {
-      let svg = svgExport.export(this.$refs.svg, allCss)
+      let svg = svgExport.exportSVG(this.$refs.svg, allCss)
       let width = 1000
       let height = 500
       const svgDom = $('#svg1')
@@ -1680,25 +2032,20 @@ export default {
 @import url('./showtips.css');
 
 #content {
-  width: 100vw;
+  width: 100%;
   height: 100vh;
 }
 #topology_container{
-  width: 100vw;
+  width: 100%;
   height: calc(100vh - 200px);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.top-btn-div {
-  width: 100%;
-  height: 64px;
-  line-height: 64px;
-}
 
 .node {
   font: 14px sans-serif;
-  fill: #000000;
+  /* fill: #000000; */
   text-anchor: middle;
 }
 
@@ -1712,13 +2059,20 @@ export default {
 
 .link {
   stroke: #c8c8c8;
+  fill: transparent;
 }
 
 .arrow {
   fill: #ccc;
 }
 
-.node-bg {
+.node-circle-bg {
+  /* fill: #fff; */
+}
+.node-rect-bg {
+  fill: #fff;
+}
+.node-diamond-bg {
   fill: #fff;
 }
 .group-bg {
@@ -1735,17 +2089,22 @@ marker.focus .arrow {
   fill: #be385d;
 }
 
-/* .node-item.focus .node-bg {
+/* .node-item.focus .node-circle-bg {
   stroke-width: 2;
   stroke: black;
 } */
-.node-item.focus .node-bg {
+.node-item.focus .node-circle-bg {
   /* cursor: move; */
   stroke-opacity: 0.8;
   stroke: #be385d;
   stroke-width: 5px;
 }
-
+.node-item.focus .node-rect-bg,
+.node-item.focus .node-diamond-bg{
+  stroke-opacity: 0.5;
+  stroke: #be385d;
+  stroke-width: 1px;
+}
 .link.selected {
   stroke: rgba(202, 164, 85, 0.6);
 }
@@ -1753,15 +2112,27 @@ marker.focus .arrow {
   stroke: #1aad8d;
 }
 
-.node-item.selected .node-bg {
+.node-item.selected .node-circle-bg {
   stroke: #caa455;
   stroke-opacity: 0.8;
   stroke-width: 4.5px;
 }
-.node-item.boxSelected .node-bg {
+.node-item.selected .node-rect-bg,
+.node-item.selected .node-diamond-bg {
+  stroke-opacity: 0.5;
+  stroke: #caa455;
+  stroke-width: 1px;
+}
+.node-item.boxSelected .node-circle-bg {
   stroke: #1aad8d;
   stroke-opacity: 0.8;
   stroke-width: 4.5px;
+}
+.node-item.boxSelected .node-rect-bg,
+.node-item.boxSelected .node-diamond-bg {
+  stroke-opacity: 0.5;
+  stroke: #1aad8d;
+  stroke-width: 1px;
 }
 
 marker.selected .arrow {
@@ -1784,5 +2155,9 @@ marker.boxSelected .arrow{
 #svg1 {
   border: solid 1px #e5dfdf;
   /* cursor: grab; */
+}
+
+.link-text {
+  font-size: 12px;
 }
 </style>

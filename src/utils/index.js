@@ -95,8 +95,8 @@ export const findLinks = (nodeId, links) => {
   }
   
   // node formatter
-  export const newNode = (nodeId) => {
-    return { id: nodeId, name: newNodeName(), type: 1 }
+  export const newNode = (nodeId, name = newNodeName(), imgType = 1, icon = 'img') => {
+    return { id: nodeId, name: name, imgType: imgType, icon: icon }
   }
   
   // generates random nodes => [ nodes ]

@@ -1,0 +1,72 @@
+:root{
+    --font-color: #66545e;
+    --background-color: #fff;
+}
+[data-theme="dark"] {
+    --font-color: #525353;
+    --background-color: #000;
+}
+.containers{
+    background-color: var(--background-color);
+  }
+  
+:deep(.el-button){
+    color: var(--font-color);
+}
+.theme-switch-wrapper {
+    display: inline-block;
+    width: 60px;
+    margin-right: 10px;
+}
+.theme-switch {    
+    display: block;
+    height: 25px;
+    position: relative;
+    width: 60px;
+    border-radius: 15px;
+}
+
+.theme-switch input {
+    display: none;    
+}
+
+.slider {
+    background-color: gray;
+    bottom: 0;
+    cursor: pointer;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    transition: .4s;
+
+  }
+
+.slider::before {    
+    bottom: 0px;
+    height: 22px;
+    left: 3px;
+    position: absolute;
+    transition: .4s;
+    width: 26px; 
+    content:"🌞";
+
+}
+
+input:checked + .slider {
+    background-color: gray;
+}
+
+input:checked + .slider::before {
+    transform: translateX(28px);
+    content:'🌙';
+
+}
+
+.slider.round {
+    border-radius: 15px;
+}
+
+.slider.round::before {
+    border-radius: 10%;
+}

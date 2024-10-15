@@ -794,7 +794,7 @@
         this.simulation.restart();
       },
       svgScreenShot(cb, toSvg, background, allCss) {
-        let svg = svgExport.export(this.$refs.svg, allCss)
+        let svg = svgExport.exportSVG(this.$refs.svg, allCss)
         if (!toSvg) {
           if (!background) background = this.searchBackground()
           let canvas = svgExport.makeCanvas(this.size.w, this.size.h, background)

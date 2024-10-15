@@ -13,7 +13,7 @@ import Index from './views/D3Index/index.vue'
 export default {
   name: 'App',
   components: {
-    // PageIndex
+    // PageIndex,
     Index,
     // ReadJsonD3
   }

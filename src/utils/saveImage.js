@@ -2,7 +2,6 @@ export default {
     save (img, name) {
       if (img) {
         img = this.dataURIToBlob(img, (blob) => {
-          debugger
           let url = URL.createObjectURL(blob)
           this.download(url, name)
         })
@@ -18,7 +17,6 @@ export default {
       cb(new Blob([arr], { type: 'image/png'}))
     },
     download (url, name) {
-      debugger
       name = name || ''
       let link = document.createElement('a')
       link.setAttribute('href', url)
