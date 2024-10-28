@@ -15,6 +15,14 @@
         <el-button class="clear-svg-btn" @click="clearChange()">清空画布</el-button>
         <el-button class="save-btn" @click="saveChange()">保存更改</el-button>
         <el-button v-if="layout === 'tree'" class="save-btn" @click="addTreeNodes()">添加五个节点</el-button>
+        <el-select v-model="direction" class="change-direction-btn" placeholder="请选择tree的方向" @change="changeDirection">
+          <el-option
+            v-for="item in directions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value">
+          </el-option>
+        </el-select>
       </div>
      <div class="content-flex-wrap">
       <div v-if="layout === 'reset'" class="left-list" :class="{'collapsed': !$store.state.isCollapse, 'notCollapsed': $store.state.isCollapse}">
@@ -170,7 +178,26 @@
         },
         linkDrawerVisible: false,
         currentLink: null,
-        layout: 'reset'
+        layout: 'reset',
+        direction: 'LR',
+        directions: [
+          {
+            value: 'LR',
+            label: '从左至右'
+          },
+          {
+            value: 'RL',
+            label: '从右至左'
+          },
+          {
+            value: 'TB',
+            label: '从上至下'
+          },
+          {
+            value: 'BT',
+            label: '从下至上'
+          }
+        ],
       }
     },
     computed: {
@@ -537,6 +564,11 @@
       },
       addSvgNode(node) {
         this.$refs['proDThree'] ? this.$refs['proDThree'].addNode(node) : false;
+      },
+      // 更改方向
+      changeDirection(val) {
+        console.log('更改方向1', val)
+        this.$refs['tree'] ? this.$refs['tree'].changeDirection(val) : false;
       }
     }
   }
@@ -607,5 +639,8 @@
 }
 .right-svg-wrap.notCollapsed {
   width: calc(100% - 220px);
+}
+.change-direction-btn {
+  margin-left: 10px;
 }
   </style>

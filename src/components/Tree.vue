@@ -3,6 +3,10 @@
     <svg id="treeSvg" class="dagre">
       <g class="container"></g>
     </svg>
+    <div ref="tooltip" class="tooltip">
+        <div>节点ID：{{currentNode.id}}</div>
+        <div>节点名称：{{currentNode.nodeName}}</div>
+    </div>
   </div>
 </template>
 
@@ -263,7 +267,12 @@ export default {
       container: null,
       svg: null,
       g: null,
-      render: null
+      render: null,
+      currentNode: {
+        id: '',
+        nodeName: ''
+      },
+      direction: "LR"
     }
   },
   mounted() {
@@ -319,8 +328,8 @@ export default {
         return {};
       });
       //方向
-      this.g.graph().rankdir = "LR";
-      this.createTooltip();
+      this.g.graph().rankdir = this.direction;
+      // 绘制节点
       this.nodes2.forEach((node) => {
         this.createNode(node)
       })
@@ -337,13 +346,27 @@ export default {
         arrowhead: "undirected",
         curve: d3.curveBasis,
       });
-      this.g.setEdge("B", "D", { id: 'edge-B-D' });
+      this.g.setEdge("B","D", {
+        //边标签
+        label: 'test',
+        // 边样式
+        style: "fill:#fff;stroke:#afa;stroke-width:2px",
+        labelStyle: "fill:#1890ff",
+        // 箭头形状
+        arrowhead:"vee",
+        // 箭头样式
+        arrowheadStyle:"fill:#f66",
+        id: 'edge-B-D'
+      })
+      // this.g.setEdge("B", "D", { id: 'edge-B-D' });
       this.g.setEdge("C", "E", { id: 'edge-C-E' });
       this.g.setEdge("D", "F", { id: 'edge-D-F' });
       this.g.setEdge("F", "G", { id: 'edge-F-G' });
       this.g.setEdge("E", "H", { id: 'edge-E-H' });
       this.g.setEdge("E", "I", { id: 'edge-E-I' });
+
       const svg = d3.select("#treeSvg");
+      // 创建渲染器
       this.render = new dagreD3.render();
       // Center the graph
       const svgGroup = svg.append("g");
@@ -353,7 +376,6 @@ export default {
       svg.attr("height", height);
       svgGroup.attr("transform", "translate(20, 20)");
       this.centerChange();
-      this.bindMouseover();
       this.bindClickEventListeners();
 
     },
@@ -583,10 +605,13 @@ export default {
       //   true
       // );
     },
-    createTooltip() {
-      var tooltip = d3.select("body").append("div")
-      .attr("class","tooltip") //用于css设置类样式
-      .attr("opacity",0.0); //设置为不可见
+    changeDirection(val) {
+      console.log('更改方向2', val)
+      this.g.graph().rankdir = val;
+      // 重新渲染整个图
+      // Zoom and scale to fit
+      this.render(d3.select("svg g"), this.g);
+      this.updateForeignObjectSize();
     },
     createNode(node) {
       this.g.setNode(node.id,
@@ -611,7 +636,7 @@ export default {
           labelType: "html",
           width: 340,
           height: 106,
-          // shape: "rect", //节点形状，可以设置rect(长方形),circle,ellipse(椭圆),diamond(菱形) 四种形状，还可以使用render.shapes()自定义形状
+          // shape: "diamond", //节点形状，可以设置rect(长方形),circle,ellipse(椭圆),diamond(菱形) 四种形状，还可以使用render.shapes()自定义形状
           style: "fill:#fff;stroke:#a0cfff;stroke-width: 2px;cursor: pointer", //节点样式,可设置节点的颜色填充、节点边框
           labelStyle: "fill: #fff;font-weight:bold;cursor: pointer", //节点标签样式, 可设置节点标签的文本样式（颜色、粗细、大小）
           rx: 5, // 设置圆角
@@ -649,6 +674,7 @@ export default {
       // 重新渲染整个图
       this.render(d3.select("svg g"), this.g);
       this.updateForeignObjectSize();
+      this.bindClickEventListeners()
     },
     // 更新节点函数
     updateNodeContent(node) {
@@ -779,17 +805,48 @@ export default {
     bindClickEventListeners() {
       // 使用事件委托
       const that = this
-      d3.select("svg.dagre").on('click', function (event) {
+      const tooltipBox = that.$refs.tooltip;
+      d3.selectAll("g.node")
+      .on("mouseover", function (e) {
+        if(e.target.id) {
+          for (let a in that.g._nodes) {
+            if(a !== e.target.id) {
+              d3.select(`g#${a} rect.label-container`)
+              .style('fill', '#fff')
+              .style('stroke', '#a0cfff')
+              .style('stroke-width', '2px')
+              .style('cursor', 'pointer')
+            }
+          }
+          if(that.g._nodes[e.target.id]) {
+            d3.select(`g#${e.target.id} rect.label-container`)
+            .style('fill', '#85c5e259')
+            .style('stroke', '#30a8ff')
+            .style('stroke-width', '2px')
+            .style('cursor', 'pointer')
+          }
+        
+          that.currentNode = {
+            id: e.target.id,
+            nodeName: e.target.id
+          }
+          tooltipBox.style.display = 'block';
+          tooltipBox.style.top = e.clientY + 20 + 'px';
+          tooltipBox.style.left = e.clientX + 'px';
+        }
+      }).on("mouseout", function (v) {
+        tooltipBox.style.display = 'none';
+        for (let a in that.g._nodes) {
+          d3.select(`g#${a} rect.label-container`)
+              .style('fill', '#fff')
+              .style('stroke', '#a0cfff')
+              .style('stroke-width', '2px')
+              .style('cursor', 'pointer')
+          }
+     }).on('click', function (event) {
         if (event.type === "click" && event.target.id) { // 假设节点都是g元素
           that.nodeClicked(event);
         }
-      });
-    },
-    // 绑定鼠标悬浮事件
-    bindMouseover() {
-      d3.selectAll("g.node").on("mouseover", function (e) {
-        console.log("Node mouseover:", e.target.id);
-
       })
     },
     // 清空画布
@@ -920,6 +977,14 @@ export default {
         .duration(100) // 100ms
         .call(this.zoom.transform, transform);
     },
+    // 删除节点
+    removeNode(node) {
+      this.g.removeNode(node)
+    },
+    // 删除边
+    removeEdge(v,s) {
+      this.g.removeEdge(v,s)
+    }
   }
 }
 </script>
@@ -1010,4 +1075,20 @@ export default {
   fill: none;
   stroke-width: 1.5px;
 }
+</style>
+<style scoped>
+.tooltip {
+     position: absolute;
+     font-size: 12px;
+     background-color: white;
+     border-radius: 3px;
+     box-shadow: rgb(174, 174, 174) 0px 0px 10px;
+     cursor: pointer;
+     display: none;
+     padding:10px;
+ }
+ 
+.tooltip>div {
+     padding: 10px;
+ }
 </style>
