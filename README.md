@@ -26,7 +26,7 @@ See [Configuration Reference](https://cli.vuejs.org/config/).
 ### 具体功能点
 - 公共功能：放大缩小、居中、清空画布、保存生成json文件、导出png、svg
 - 流程图：
-1、自定义label
+<p>1、自定义label</p>
 2、点击父节点加载子节点
 3、点击rect框可拉宽拉长。
 4、切换方向：从左至右、从右至左、从上至下、从下至上
