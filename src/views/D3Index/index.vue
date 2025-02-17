@@ -15,6 +15,8 @@
         <el-button class="clear-svg-btn" @click="clearChange()">清空画布</el-button>
         <el-button class="save-btn" @click="saveChange()">保存更改</el-button>
         <el-button v-if="layout === 'tree'" class="save-btn" @click="addTreeNodes()">添加五个节点</el-button>
+        <el-button v-if="layout === 'tree'" class="save-btn" @click="addRect()">添加rect框</el-button>
+        <el-button v-if="layout === 'tree'" class="save-btn" @click="addTextArea()">添加输入框</el-button>
         <el-select v-model="direction" class="change-direction-btn" placeholder="请选择tree的方向" @change="changeDirection">
           <el-option
             v-for="item in directions"
@@ -569,6 +571,14 @@
       changeDirection(val) {
         console.log('更改方向1', val)
         this.$refs['tree'] ? this.$refs['tree'].changeDirection(val) : false;
+      },
+      // 添加一个rect框
+      addRect() {
+        this.$refs['tree'] ? this.$refs['tree'].addRect() : false;
+      },
+      // 添加一个输入框
+      addTextArea() {
+        this.$refs['tree'] ? this.$refs['tree'].addTextArea() : false;
       }
     }
   }

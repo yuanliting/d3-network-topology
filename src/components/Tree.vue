@@ -3,9 +3,20 @@
     <svg id="treeSvg" class="dagre">
       <g class="container"></g>
     </svg>
+    <svg id="gridSvg">
+
+    </svg>
     <div ref="tooltip" class="tooltip">
         <div>节点ID：{{currentNode.id}}</div>
         <div>节点名称：{{currentNode.nodeName}}</div>
+    </div>
+    <div ref="coordinateTip" class="coordinate-tooltip">
+      <div>
+        rectStartX: {{ this.rectStartX }}
+        rectStartY: {{  rectStartY }}
+      </div>
+      X: {{ currentCoordinate.x }}
+      Y: {{ currentCoordinate.y }}
     </div>
   </div>
 </template>
@@ -272,7 +283,13 @@ export default {
         id: '',
         nodeName: ''
       },
-      direction: "LR"
+      direction: "LR",
+      rectStartX: 0,
+      rectStartY: 0,
+      currentCoordinate: { x: 0, y: 0 },
+      start_rect_x: 0,
+      start_rect_y: 0,
+      clickRectId: ''
     }
   },
   mounted() {
@@ -322,7 +339,9 @@ export default {
     async initRender() {
       const width = $("#tree-container").width();
       const height = $("#tree-container").height();
-      console.log('kuangao', width, height);
+      console.log('宽高', width, height);
+      d3.select('#gridSvg').attr("width", width);
+      d3.select('#gridSvg').attr("height", height);
       this.g = new dagreD3.graphlib.Graph().setGraph({});
       this.g.setDefaultEdgeLabel(function () {
         return {};
@@ -365,19 +384,21 @@ export default {
       this.g.setEdge("E", "H", { id: 'edge-E-H' });
       this.g.setEdge("E", "I", { id: 'edge-E-I' });
 
-      const svg = d3.select("#treeSvg");
+      this.svg = d3.select("#treeSvg");
+      // 方格线
+      this.addPattern();
       // 创建渲染器
       this.render = new dagreD3.render();
-      // Center the graph
-      const svgGroup = svg.append("g");
       this.render(d3.select("svg g"), this.g);
       this.bindZoom()
-      svg.attr("width", width);
-      svg.attr("height", height);
-      svgGroup.attr("transform", "translate(20, 20)");
+      this.svg.attr("width", width);
+      this.svg.attr("height", height);
       this.centerChange();
       this.bindClickEventListeners();
-
+      // 阻止双击视图放大
+      this.svg.on("dblclick.zoom", function (event) {
+        event.stopPropagation();
+      })
     },
     draw() {
       const width = $("#tree-container").width();
@@ -806,8 +827,89 @@ export default {
       // 使用事件委托
       const that = this
       const tooltipBox = that.$refs.tooltip;
+      d3.select('svg#treeSvg')
+      .on('click', function (event) {
+        console.log('点击了svg', event)
+        const shape_controller = d3.selectAll('g#controls_bounding rect.shape_controller')
+        for (let i = 0; i < shape_controller._groups[0].length; i++) {
+          if(i === 0) {
+            d3.select('g#controls_bounding rect.shape_controller.n.w').attr('display', `none`)
+          }
+          if(i === 1) {
+            d3.select('g#controls_bounding rect.shape_controller.n.e').attr('display', `none`)
+          }
+          if(i === 2) {
+            d3.select('g#controls_bounding rect.shape_controller.s.w').attr('display', `none`)
+          }
+          if(i === 3) {
+            d3.select('g#controls_bounding rect.shape_controller.s.e').attr('display', `none`)
+          }
+        }
+        if(d3.select(`g#textarea_g`)._groups[0][0]) {
+          // 文本输入框的处理
+          document.getElementById('textarea-parent-wrap').style.cursor = `move`
+          document.getElementById('auto-input-textarea').style.cursor = `move`
+          document.getElementById('auto-input-textarea').style.display = `none`
+          document.getElementById('auto-input-textarea').style.width = `100%`
+          document.getElementById('auto-input-textarea').style.height = `100%`
+          document.getElementById('auto-input-textarea').disabled = true;
+          
+          document.getElementById('textarea-value-wrap').style.display = `block`
+          document.getElementById('textarea-value-wrap').innerHTML = document.getElementById('auto-input-textarea').value
+          // 隐藏rect
+          d3.select(`g#textarea_g rect#textarea_rect`).attr('display', 'none')
+          const shape_controller2 = d3.selectAll('g#textarea_g rect.shape_controller')
+          for (let i = 0; i < shape_controller2._groups[0].length; i++) {
+            if(i === 0) {
+              d3.select('g#textarea_g rect.shape_controller.n.w').attr('display', `none`)
+            }
+            if(i === 1) {
+              d3.select('g#textarea_g rect.shape_controller.n.e').attr('display', `none`)
+            }
+            if(i === 2) {
+              d3.select('g#textarea_g rect.shape_controller.s.w').attr('display', `none`)
+            }
+            if(i === 3) {
+              d3.select('g#textarea_g rect.shape_controller.s.e').attr('display', `none`)
+            }
+          }
+        }
+      })
+
+      // rect框
+      d3.selectAll("rect#controls_bounding_rect").on("mouseover", function (e) {
+        // console.log('鼠标移入', e)
+      }).on('mouseenter', function (e) {
+        // console.log('mouseenter', e)
+      }).on("mouseout", function (v) {
+        // console.log('mouseout', v)
+      }).on('mouseleave', function(e) {
+        // console.log('mouseleave', e);
+      }).on('click', function (event) {
+        event.stopPropagation();
+        console.log('点击了rect', event)
+        const shape_controller = d3.selectAll('g#controls_bounding rect.shape_controller')
+        console.log(d3.select("g#controls_bounding rect#controls_bounding_rect"))
+        for (let i = 0; i < shape_controller._groups[0].length; i++) {
+          if(i === 0) {
+            d3.select('g#controls_bounding rect.shape_controller.n.w').attr('display', `block`)
+          }
+          if(i === 1) {
+            d3.select('g#controls_bounding rect.shape_controller.n.e').attr('display', `block`)
+          }
+          if(i === 2) {
+            d3.select('g#controls_bounding rect.shape_controller.s.w').attr('display', `block`)
+          }
+          if(i === 3) {
+            d3.select('g#controls_bounding rect.shape_controller.s.e').attr('display', `block`)
+          }
+        }
+      })
+
+      // 节点事件
       d3.selectAll("g.node")
       .on("mouseover", function (e) {
+        // console.log('mouseover', e)
         if(e.target.id) {
           for (let a in that.g._nodes) {
             if(a !== e.target.id) {
@@ -825,16 +927,18 @@ export default {
             .style('stroke-width', '2px')
             .style('cursor', 'pointer')
           }
-        
           that.currentNode = {
             id: e.target.id,
             nodeName: e.target.id
           }
           tooltipBox.style.display = 'block';
-          tooltipBox.style.top = e.clientY + 20 + 'px';
-          tooltipBox.style.left = e.clientX + 'px';
+          tooltipBox.style.top = (e.clientY - 30) + 'px';
+          tooltipBox.style.left = (e.clientX - 30) + 'px';
         }
+      }).on('mouseenter', function (e) {
+        // console.log('mouseenter', e)
       }).on("mouseout", function (v) {
+        // console.log('mouseout', v)
         tooltipBox.style.display = 'none';
         for (let a in that.g._nodes) {
           d3.select(`g#${a} rect.label-container`)
@@ -842,8 +946,10 @@ export default {
               .style('stroke', '#a0cfff')
               .style('stroke-width', '2px')
               .style('cursor', 'pointer')
-          }
-     }).on('click', function (event) {
+        }
+      }).on('mouseleave', function(e) {
+        // console.log('mouseleave', e);
+      }).on('click', function (event) {
         if (event.type === "click" && event.target.id) { // 假设节点都是g元素
           that.nodeClicked(event);
         }
@@ -984,6 +1090,690 @@ export default {
     // 删除边
     removeEdge(v,s) {
       this.g.removeEdge(v,s)
+    },
+    // 添加一个rect
+    addRect() {
+      var data = [{'text': '初始文字', 'width': 100, 'height': 50}];
+      d3.select('#treeSvg .container').append('g')
+      .attr('id', 'controls_bounding')
+      .append('rect')
+      .attr('id', 'controls_bounding_rect')
+      .attr('width', '100')
+      .attr('height', '100')
+      .attr('fill', 'transparent')
+      .attr('stroke', '#067bef')
+      .attr('stroke-width', '1')
+      .attr('stroke-dasharray', '4')
+      .attr('transform', `translate(${0},${0})`)
+      .style('cursor', 'move')
+      .data(data)
+
+      d3.select("g#controls_bounding")
+        .append("rect")
+        .attr('class', 'shape_controller n w')
+        .attr('index', 0)
+        .attr('width', '6')
+        .attr('height', '6')
+        .attr('stroke', 'rgb(6, 123, 239)')
+        .attr('stroke-width', '1')
+        .attr('fill', '#fff')
+        .attr('display', `none`)
+        .attr('cursor', 'nwse-resize')
+        .attr('transform', `translate(${-3},${ -3})`)
+        .on('mouseover', function(v) {
+          d3.select(this).attr('fill', '#067bef')
+        }).on("mouseout", function (v) {
+          d3.select(this).attr('fill', '#fff')
+        }).call(
+          this.drag('controls_bounding', 'rect.shape_controller.n.w')
+        )
+
+        d3.select("g#controls_bounding")
+        .append("rect")
+        .attr('class', 'shape_controller n e')
+        .attr('index', 0)
+        .attr('width', '6')
+        .attr('height', '6')
+        .attr('stroke', 'rgb(6, 123, 239)')
+        .attr('stroke-width', '1')
+        .attr('fill', '#fff')
+        .attr('display', `none`)
+        .attr('cursor', 'nesw-resize')
+        .attr('transform', `translate(${100-3},${ -3})`)
+        .on('mouseover', function(v) {
+          d3.select(this).attr('fill', '#067bef')
+        }).on("mouseout", function (v) {
+          d3.select(this).attr('fill', '#fff')
+        }).call(
+          this.drag('controls_bounding','rect.shape_controller.n.e')
+        )
+
+        d3.select("g#controls_bounding")
+        .append("rect")
+        .attr('class', 'shape_controller s w')
+        .attr('index', 0)
+        .attr('width', '6')
+        .attr('height', '6')
+        .attr('stroke', 'rgb(6, 123, 239)')
+        .attr('stroke-width', '1')
+        .attr('fill', '#fff')
+        .attr('display', `none`)
+        .attr('cursor', 'nesw-resize')
+        .attr('transform', `translate(${-3},${100 - 3})`)
+        .on('mouseover', function(v) {
+          d3.select(this).attr('fill', '#067bef')
+        }).on("mouseout", function (v) {
+          d3.select(this).attr('fill', '#fff')
+        }).call(
+          this.drag('controls_bounding','rect.shape_controller.s.w')
+        )
+
+        d3.select("g#controls_bounding")
+        .append("rect")
+        .attr('class', 'shape_controller s e')
+        .attr('index', 0)
+        .attr('width', '6')
+        .attr('height', '6')
+        .attr('stroke', 'rgb(6, 123, 239)')
+        .attr('stroke-width', '1')
+        .attr('fill', '#fff')
+        .attr('display', `none`)
+        .attr('cursor', 'nwse-resize')
+        .attr('transform', `translate(${100-3},${ 100-3})`)
+        .on('mouseover', function(v) {
+          d3.select(this).attr('fill', '#067bef')
+        }).on("mouseout", function (v) {
+          d3.select(this).attr('fill', '#fff')
+        }).call(
+          this.drag('controls_bounding','rect.shape_controller.s.e')
+        )
+        this.bindRectEventListener()
+    },
+    // 绑定事件监听器
+    bindRectEventListener() {
+      const that = this
+      // rect框
+      d3.selectAll("rect#controls_bounding_rect").on("mouseover", function (e) {
+        // console.log('鼠标移入', e)
+      }).on('mouseenter', function (e) {
+        // console.log('mouseenter', e)
+      }).on("mouseout", function (v) {
+        // console.log('mouseout', v)
+      }).on('mouseleave', function(e) {
+        // console.log('mouseleave', e);
+      }).on('mousedown', function(e) {
+        console.log('mousedown', e)
+      }).on('click', function (event) {
+        event.stopPropagation();
+        console.log('点击了rect', event.target.id)
+        this.clickRectId = event.target.id
+        // 给rect四周添加四个控制点
+        // this.drawControls(this.clickRectId)
+        const shape_controller = d3.selectAll('g#controls_bounding rect.shape_controller')
+        console.log(d3.select("g#controls_bounding rect#controls_bounding_rect"))
+        for (let i = 0; i < shape_controller._groups[0].length; i++) {
+          if(i === 0) {
+            d3.select('g#controls_bounding rect.shape_controller.n.w').attr('display', `block`)
+          }
+          if(i === 1) {
+            d3.select('g#controls_bounding rect.shape_controller.n.e').attr('display', `block`)
+          }
+          if(i === 2) {
+            d3.select('g#controls_bounding rect.shape_controller.s.w').attr('display', `block`)
+          }
+          if(i === 3) {
+            d3.select('g#controls_bounding rect.shape_controller.s.e').attr('display', `block`)
+          }
+        }
+      }).call(
+          this.drag('controls_bounding', 'rect#controls_bounding_rect')
+      )
+      // .on('dblclick', function(e) {
+      //     console.log('双击了')
+      //     that.addTextArea()
+      // })
+    },
+    // 拖拽
+    drag(parentGId, className) {
+      return d3.drag()
+        .on('start', (event) => { this.dragStarted(event, parentGId, className)})
+        .on('drag', (event) => { this.dragged(event, parentGId, className)})
+        .on('end', (event) => { this.dragEnded(event, parentGId, className)})
+    },
+    // drag nodes
+    dragStarted(event, parentGId, className) {
+      console.log('开始拖动', event)
+      const x = event.x;
+      const y = event.y;
+      if(className === 'rect#textarea_rect') {
+        this.rectStartX = x
+        this.rectStartY = y
+        const rect_x = d3.select(`g#${parentGId} rect#textarea_rect`)._groups[0][0].x ? d3.select(`g#${parentGId} rect#textarea_rect`)._groups[0][0].x.animVal.value : 0
+        const rect_y = d3.select(`g#${parentGId} rect#textarea_rect`)._groups[0][0].y ? d3.select(`g#${parentGId} rect#textarea_rect`)._groups[0][0].y.animVal.value : 0
+        this.start_rect_x = rect_x
+        this.start_rect_y = rect_y
+      }
+      if(className === 'rect#controls_bounding_rect') {
+        this.rectStartX = x
+        this.rectStartY = y
+        const rect_x = d3.select('rect#controls_bounding_rect')._groups[0][0].x ? d3.select('rect#controls_bounding_rect')._groups[0][0].x.animVal.value : 0
+        const rect_y = d3.select('rect#controls_bounding_rect')._groups[0][0].y ? d3.select('rect#controls_bounding_rect')._groups[0][0].y.animVal.value : 0
+        this.start_rect_x = rect_x
+        this.start_rect_y = rect_y
+      }
+    },
+    dragged(event, parentGId, className) {
+      console.log('dragged拖动', className)
+      const x = event.x;
+      const y = event.y;
+      console.log('x、y', x, y)
+      let parentNodeId = parentGId
+      let rectId = ''
+      // if(d3.select(`${className}`).node().parentNode) {
+      //   parentNodeId = d3.select(d3.select(`${className}`).node().parentNode)._groups[0][0].id
+      //   console.log('父元素id：', parentNodeId)
+      // }
+      if(parentNodeId === 'controls_bounding') {
+        rectId = 'controls_bounding_rect'
+      } else {
+        rectId = 'textarea_rect'
+      }
+     
+      if(event.type === 'drag' && className !== 'rect#controls_bounding_rect') {
+        console.log(d3.select(d3.select(`${className}`).node().parentNode))
+        // 拖动时的操作
+        const ne_x = d3.select(`g#${parentNodeId} rect.shape_controller.n.e`)._groups[0][0].transform.animVal[0].matrix.e
+        const ne_y = d3.select(`g#${parentNodeId} rect.shape_controller.n.e`)._groups[0][0].transform.animVal[0].matrix.f
+        const se_x = d3.select(`g#${parentNodeId} rect.shape_controller.s.e`)._groups[0][0].transform.animVal[0].matrix.e
+        const se_y = d3.select(`g#${parentNodeId} rect.shape_controller.s.e`)._groups[0][0].transform.animVal[0].matrix.f
+        const nw_x = d3.select(`g#${parentNodeId} rect.shape_controller.n.w`)._groups[0][0].transform.animVal[0].matrix.e
+        const nw_y = d3.select(`g#${parentNodeId} rect.shape_controller.n.w`)._groups[0][0].transform.animVal[0].matrix.f
+        const sw_x = d3.select(`g#${parentNodeId} rect.shape_controller.s.w`)._groups[0][0].transform.animVal[0].matrix.e
+        const sw_y = d3.select(`g#${parentNodeId} rect.shape_controller.s.w`)._groups[0][0].transform.animVal[0].matrix.f
+        
+        if(className === 'rect.shape_controller.n.w' && Math.abs(nw_x - ne_x) - 3 > 10 && Math.abs(sw_y - nw_y) - 3 > 10) {
+          d3.select(`g#${parentNodeId} rect.shape_controller.n.w`).attr('transform', `translate(${event.x - 3},${event.y - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.n.e`).attr('transform', `translate(${ne_x},${event.y - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.s.w`).attr('transform', `translate(${event.x - 3},${sw_y})`)
+          
+          // rect
+          d3.select(`rect#${rectId}`)
+          .attr('width', Math.abs(nw_x - ne_x))
+          .attr('height', Math.abs(sw_y - nw_y))
+          .attr('x', event.x)
+          .attr('y', event.y)
+
+          // 文本输入框wrap
+          if(d3.select(`g#${parentNodeId} foreignObject#textareaWrap`)._groups[0][0]) {
+            d3.select(`g#${parentNodeId} foreignObject#textareaWrap`)
+            .attr('width', Math.abs(nw_x - ne_x))
+            .attr('height', Math.abs(sw_y - nw_y))
+            .attr('x', event.x)
+            .attr('y', event.y)
+            document.getElementById('textarea-parent-wrap').style.width = `100%`
+            document.getElementById('textarea-parent-wrap').style.height = `100%`
+            document.getElementById('textarea-wrap').style.width = `100%`
+            document.getElementById('textarea-wrap').style.height = `100%`
+            document.getElementById('auto-input-textarea').style.width = `100%`
+            document.getElementById('auto-input-textarea').style.height = `100%`
+          }
+        }
+
+        if(className === 'rect.shape_controller.n.e' && Math.abs(ne_x-nw_x) > 10 && Math.abs(se_y - y) > 10) {
+          console.log(2222, d3.select('rect.shape_controller.s.w'))
+          d3.select(`g#${parentNodeId} rect.shape_controller.n.e`).attr('transform', `translate(${event.x - 3},${event.y - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.n.w`).attr('transform', `translate(${sw_x},${event.y - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.s.e`).attr('transform', `translate(${event.x - 3},${sw_y})`)
+          // rect
+          d3.select(`rect#${rectId}`)
+          .attr('width', Math.abs(ne_x - nw_x))
+          .attr('height', Math.abs(sw_y + 3 - event.y))
+          .attr('x', sw_x + 3)
+          .attr('y', event.y)
+
+          if(d3.select(`g#${parentNodeId} foreignObject#textareaWrap`)._groups[0][0]) {
+            d3.select(`g#${parentNodeId} foreignObject#textareaWrap`)
+            .attr('width', Math.abs(ne_x - nw_x))
+            .attr('height', Math.abs(sw_y + 3 - event.y))
+            .attr('x', sw_x + 3)
+            .attr('y', event.y)
+            document.getElementById('textarea-parent-wrap').style.width = `100%`
+            document.getElementById('textarea-parent-wrap').style.height = `100%`
+            document.getElementById('textarea-wrap').style.width = `100%`
+            document.getElementById('textarea-wrap').style.height = `100%`
+            document.getElementById('auto-input-textarea').style.width = `100%`
+            document.getElementById('auto-input-textarea').style.height = `100%`
+          }
+        }
+
+        if(className === 'rect.shape_controller.s.e') {
+          d3.select(`g#${parentNodeId} rect.shape_controller.s.e`).attr('transform', `translate(${event.x - 3},${event.y - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.n.e`).attr('transform', `translate(${event.x - 3},${ne_y})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.s.w`).attr('transform', `translate(${sw_x},${event.y - 3})`)
+          // rect
+          d3.select(`rect#${rectId}`)
+          .attr('width', Math.abs(se_x - sw_x))
+          .attr('height', Math.abs(se_y - ne_y))
+          .attr('x', nw_x + 3)
+          .attr('y', event.y - Math.abs(se_y - ne_y))
+
+          if(d3.select(`g#${parentNodeId} foreignObject#textareaWrap`)._groups[0][0]) {
+            d3.select(`g#${parentNodeId} foreignObject#textareaWrap`)
+            .attr('width', Math.abs(se_x - sw_x))
+            .attr('height', Math.abs(se_y - ne_y))
+            .attr('x', nw_x + 3)
+            .attr('y', event.y - Math.abs(se_y - ne_y))
+            document.getElementById('textarea-parent-wrap').style.width = `100%`
+            document.getElementById('textarea-parent-wrap').style.height = `100%`
+            document.getElementById('textarea-wrap').style.width = `100%`
+            document.getElementById('textarea-wrap').style.height = `100%`
+            document.getElementById('auto-input-textarea').style.width = `100%`
+            document.getElementById('auto-input-textarea').style.height = `100%`
+          }
+        }
+        if(className === 'rect.shape_controller.s.w') {
+          d3.select(`g#${parentNodeId} rect.shape_controller.s.w`).attr('transform', `translate(${event.x - 3},${event.y - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.s.e`).attr('transform', `translate(${se_x},${event.y - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.n.w`).attr('transform', `translate(${event.x - 3},${nw_y})`)
+          // rect
+          d3.select(`rect#${rectId}`)
+          .attr('width', Math.abs(sw_x - se_x))
+          .attr('height', Math.abs(sw_y - nw_y))
+          .attr('x', event.x)
+          .attr('y', nw_y + 3)
+
+          if(d3.select(`g#${parentNodeId} foreignObject#textareaWrap`)._groups[0][0]) {
+            d3.select(`g#${parentNodeId} foreignObject#textareaWrap`)
+            .attr('width', Math.abs(sw_x - se_x))
+            .attr('height', Math.abs(sw_y - nw_y))
+            .attr('x', event.x)
+            .attr('y', nw_y + 3)
+            
+            document.getElementById('textarea-parent-wrap').style.width = `100%`
+            document.getElementById('textarea-parent-wrap').style.height = `100%`
+            document.getElementById('textarea-wrap').style.width = `100%`
+            document.getElementById('textarea-wrap').style.height = `100%`
+            document.getElementById('auto-input-textarea').style.width = `100%`
+            document.getElementById('auto-input-textarea').style.height = `100%`
+          }
+        }
+
+        if(event.type === 'drag' && className === 'rect#textarea_rect') {
+          console.log('移动输入框')
+          const new_nw_x = this.start_rect_x + (x - this.rectStartX)
+          const new_nw_y = this.start_rect_y + (y - this.rectStartY)
+          const rect_width =  d3.select('rect#textarea_rect')._groups[0][0].width.animVal.value
+          const rect_height =  d3.select('rect#textarea_rect')._groups[0][0].height.animVal.value
+          d3.select(`g#${parentNodeId} rect.shape_controller.n.w`)
+          .attr('transform', `translate(${new_nw_x - 3},${new_nw_y - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.n.e`)
+          .attr('transform', `translate(${new_nw_x + rect_width - 3},${new_nw_y - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.s.w`)
+          .attr('transform', `translate(${new_nw_x - 3},${new_nw_y + rect_height - 3})`)
+          d3.select(`g#${parentNodeId} rect.shape_controller.s.e`)
+          .attr('transform', `translate(${new_nw_x + rect_width - 3},${new_nw_y + rect_height - 3})`)
+            
+          d3.select(`g#${parentNodeId} rect#textarea_rect`)
+          .attr('x', this.start_rect_x + (x - this.rectStartX))
+          .attr('y', this.start_rect_y + (y - this.rectStartY));
+          d3.select(`g#${parentNodeId} foreignObject#textareaWrap`)
+          .attr('x', this.start_rect_x + (x - this.rectStartX))
+          .attr('y', this.start_rect_y + (y - this.rectStartY));
+        }
+        
+      }
+      if(event.type === 'drag' && className === 'rect#controls_bounding_rect') {
+        const coordinateTipBox = this.$refs.coordinateTip;
+        coordinateTipBox.style.display = 'block';
+        coordinateTipBox.style.top = 0 + 'px';
+        coordinateTipBox.style.left = 0 + 'px';
+        console.log('rect', d3.select("rect#controls_bounding_rect"))
+        console.log('rectStartX_Y', this.rectStartX, this.rectStartY)
+        console.log('rect_x_y', this.start_rect_x, this.start_rect_y)
+        const new_nw_x = this.start_rect_x + (x - this.rectStartX)
+        const new_nw_y = this.start_rect_y + (y - this.rectStartY)
+        const rect_width =  d3.select('rect#controls_bounding_rect')._groups[0][0].width.animVal.value
+        const rect_height =  d3.select('rect#controls_bounding_rect')._groups[0][0].height.animVal.value
+        d3.select(`g#${parentNodeId} rect.shape_controller.n.w`)
+        .attr('transform', `translate(${new_nw_x - 3},${new_nw_y - 3})`)
+        d3.select(`g#${parentNodeId} rect.shape_controller.n.e`)
+        .attr('transform', `translate(${new_nw_x + rect_width - 3},${new_nw_y - 3})`)
+        d3.select(`g#${parentNodeId} rect.shape_controller.s.w`)
+        .attr('transform', `translate(${new_nw_x - 3},${new_nw_y + rect_height - 3})`)
+        d3.select(`g#${parentNodeId} rect.shape_controller.s.e`)
+        .attr('transform', `translate(${new_nw_x + rect_width - 3},${new_nw_y + rect_height - 3})`)
+          
+        d3.select('rect#controls_bounding_rect')
+        .attr('x', this.start_rect_x + (x - this.rectStartX))
+        .attr('y', this.start_rect_y + (y - this.rectStartY));
+      }
+      if(d3.select(`rect#${rectId}`)) {
+        const new_rect_x =  d3.select(`rect#${rectId}`)._groups[0][0].x.animVal.value
+        const new_rect_y =  d3.select(`rect#${rectId}`)._groups[0][0].y.animVal.value
+        this.currentCoordinate = {
+          x: new_rect_x,
+          y: new_rect_y
+        }
+      }
+    },
+    dragEnded(event, parentGId, className) {
+      console.log('拖动结束', event.x, event.y)
+    },
+    // 添加网格
+    addPattern() {
+     const pattern = d3.select("#gridSvg").append("pattern")
+      .attr("id", "flow_canvas_grid_item")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", 61)
+      .attr("height", 61)
+      .attr("patternUnits", "userSpaceOnUse")
+      .append("path")
+      .attr("id", "flow_canvas_grid_path1")
+      .attr("stroke-width", "1")
+      .attr("stroke", "#fafafa")
+      .attr("fill", "none")
+      .attr("d", "M0 15L60 15M15 0L15 60M0 30L60 30M30 0L30 60M0 45L60 45M45 0L45 60")
+
+      d3.select("pattern")
+      .append("path")
+      .attr("id", "flow_canvas_grid_path2")
+      .attr("stroke-width", "1")
+      .attr("fill", "none")
+      .attr("d", "M0 60L60 60M60 0L60 60")
+      .attr("stroke", "rgb(242,242,242)")
+
+      // 添加一个rect填充的是方格线
+      d3.select("#gridSvg").append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "url(#flow_canvas_grid_item)");
+
+    },
+    // 添加可拉动控制
+    drawControls(id) {
+      // 根据传输的id，给其添加四个控制点
+      console.log('接收到的id', id)
+      console.log(d3.select(`g#${id} rect#textarea_rect`))
+      const rect = d3.select(`g#${id} rect#textarea_rect`)._groups[0][0]
+      let width = 0
+      let height = 0
+      if (rect) {
+        width = rect.width.animVal.value
+        height = rect.height.animVal.value
+      }
+      console.log('有没有', d3.select(`g#${id} rect.shape_controller.n.w`))
+      if(d3.select(`g#${id} rect.shape_controller.n.w`)._groups[0][0]) {
+        // 矫正位置
+        return
+      }
+      d3.select(`g#${id}`)
+        .append("rect")
+        .attr('class', 'shape_controller n w')
+        .attr('index', 0)
+        .attr('width', '6')
+        .attr('height', '6')
+        .attr('stroke', 'rgb(6, 123, 239)')
+        .attr('stroke-width', '1')
+        .attr('fill', '#fff')
+        .attr('display', `block`)
+        .attr('cursor', 'nwse-resize')
+        .attr('transform', `translate(${-3},${ -3})`)
+        .on('mouseover', function(v) {
+          d3.select(this).attr('fill', '#067bef')
+        }).on("mouseout", function (v) {
+          d3.select(this).attr('fill', '#fff')
+        }).call(
+          this.drag(id, 'rect.shape_controller.n.w')
+        )
+
+        d3.select(`g#${id}`)
+        .append("rect")
+        .attr('class', 'shape_controller n e')
+        .attr('index', 0)
+        .attr('width', '6')
+        .attr('height', '6')
+        .attr('stroke', 'rgb(6, 123, 239)')
+        .attr('stroke-width', '1')
+        .attr('fill', '#fff')
+        .attr('display', `block`)
+        .attr('cursor', 'nesw-resize')
+        .attr('transform', `translate(${width-3},${ -3})`)
+        .on('mouseover', function(v) {
+          d3.select(this).attr('fill', '#067bef')
+        }).on("mouseout", function (v) {
+          d3.select(this).attr('fill', '#fff')
+        }).call(
+          this.drag(id, 'rect.shape_controller.n.e')
+        )
+
+        d3.select(`g#${id}`)
+        .append("rect")
+        .attr('class', 'shape_controller s w')
+        .attr('index', 0)
+        .attr('width', '6')
+        .attr('height', '6')
+        .attr('stroke', 'rgb(6, 123, 239)')
+        .attr('stroke-width', '1')
+        .attr('fill', '#fff')
+        .attr('display', `block`)
+        .attr('cursor', 'nesw-resize')
+        .attr('transform', `translate(${-3},${height - 3})`)
+        .on('mouseover', function(v) {
+          d3.select(this).attr('fill', '#067bef')
+        }).on("mouseout", function (v) {
+          d3.select(this).attr('fill', '#fff')
+        }).call(
+          this.drag(id, 'rect.shape_controller.s.w')
+        )
+
+        d3.select(`g#${id}`)
+        .append("rect")
+        .attr('class', 'shape_controller s e')
+        .attr('index', 0)
+        .attr('width', '6')
+        .attr('height', '6')
+        .attr('stroke', 'rgb(6, 123, 239)')
+        .attr('stroke-width', '1')
+        .attr('fill', '#fff')
+        .attr('display', `block`)
+        .attr('cursor', 'nwse-resize')
+        .attr('transform', `translate(${width-3},${ height-3})`)
+        .on('mouseover', function(v) {
+          d3.select(this).attr('fill', '#067bef')
+        }).on("mouseout", function (v) {
+          d3.select(this).attr('fill', '#fff')
+        }).call(
+          this.drag(id, 'rect.shape_controller.s.e')
+        )
+    },
+    // 添加一个rect输入框
+    addTextArea() {
+      // 创建一个输入框容器rect，并数据绑定
+      const data = [{id: 'textarea_rect_1', 'text': '文本', 'width': 100, 'height': 50}];
+      const g = d3.select('svg#treeSvg g.container').append('g')
+      .attr('id', 'textarea_g')
+      .attr('transform', `translate(${80},${30})`)
+      const wrap = g.append('rect')
+        .attr('id', 'textarea_rect')
+        .attr('width', '100')
+        .attr('height', '100')
+        .attr('fill', 'transparent')
+        .attr('stroke', '#067bef')
+        .attr('stroke-width', '1')
+        .attr('stroke-dasharray', '4')
+        .attr('transform', `translate(${0},${0})`)
+        .data(data)
+
+        g.append('foreignObject')
+        .attr('id', 'textareaWrap')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', 100)
+        .attr('height', 100)
+        .html(`<div xmlns="http://www.w3.org/1999/xhtml" id="textarea-parent-wrap" style="fill: rgb(255, 255, 255); font-weight: bold;cursor: move; display: inline-block; white-space: nowrap;">
+          <foreignobject id="B" width="100" height="100">
+              <div id="textarea-wrap" xmlns="http://www.w3.org/1999/xhtml" style="width:100px;height:100px;box-sizing: border-box;">
+                <textarea value="文本" id="auto-input-textarea" disabled="true" style="min-height: 43px;cursor: move;display:none;">文本</textarea>
+                <div id="textarea-value-wrap">文本</div>
+              </div>
+          </foreignobject>
+        </div>`)
+        this.clickRectId = 'textarea_g'
+        this.drawControls(this.clickRectId)
+      // 创建一个输入框
+      // var input = d3.select('svg#treeSvg g.container').append('g')
+      //   .attr('id', 'textarea_g')
+      //   .append('rect')
+      //   .attr('id', 'textarea_rect')
+      //   .attr('width', '100')
+      //   .attr('height', '100')
+      //   .attr('fill', 'transparent')
+      //   .attr('stroke', '#067bef')
+      //   .attr('stroke-width', '1')
+      //   .attr('stroke-dasharray', '4')
+      //   .attr('transform', `translate(${0},${0})`)
+      //   .append('foreignObject')
+      //   .attr('id', 'textareaWrap')
+      //   .attr('x', 10)
+      //   .attr('y', 10)
+      //   .attr('width', 80)
+      //   .attr('height', 80)
+      //   .append('xhtml:body')
+      //   .append('textarea')
+      //   .attr('placeholder', '请输入')
+      //   .attr('id', 'autoResizing')
+      
+      // // 你还可以为输入框添加一些样式
+      // input.style('border', '1px solid #ccc')
+      //   .style('padding', '3px')
+      //   .style('font-size', '14px')
+      //   .style('overflow-wrap', 'break-word')
+      //   .style('white-space', 'pre-wrap')
+      //   .style('width', '87%')
+      //   .style('overflow', 'auto')
+      //   .style('resize', 'none')
+      //   .style('border', 'none')
+      //   .style('background', 'transparent')
+      //   .style('outline', 'none');
+
+        setTimeout(() => {
+          this.bindRectTextEventListener()
+          const textarea = document.getElementById('auto-input-textarea');
+          console.log('输入框', textarea)
+          let that = this
+          textarea.addEventListener('input', autoResize, false);
+          textarea.addEventListener('click', function (event2) {
+            console.log('你点击了输入框', event2)
+            event2.stopPropagation();
+             // 如果textarea有选中的文本，则清除选择范围
+            //  console.log(textarea.selectionStart)
+            //  if (textarea.createTextRange) {
+            //   // 对于旧版本的IE浏览器，使用createTextRange方法
+            //   const range = textarea.createTextRange();
+            //   range.collapse(true);
+            // }
+            // textarea.blur()
+            // const length = textarea.value.length;
+            // textarea.selectionStart = length;
+            // textarea.selectionEnd = length;
+          });
+          function autoResize() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight-4) + 'px';
+            console.log('输入框的高度', this.scrollHeight)
+            if(this.scrollHeight > 100) {
+              d3.select('foreignObject#textareaWrap').attr('height', this.scrollHeight)
+              document.getElementById('textarea-wrap').style.height = `${this.scrollHeight}px`
+              d3.select('rect#textarea_rect').attr('height', this.scrollHeight)
+              // 控制点-矫正位置
+              that.controlsCorrectedPosition('textarea_g', this.scrollHeight)
+            }
+          }
+        },1000)
+      // 创建文本框并将其放置在rect中心
+      // var text = d3.select('rect#text_rect').append('text')
+      //   .text('hello word')
+      //   .attr('x',  pos.width.animVal.value / 2)
+      //   .attr('y', pos.height.animVal.value / 2)
+      //   .attr('font-size', '16px')
+      //   .attr('text-anchor', 'middle')
+      //   .attr('fill', 'black')
+ 
+      // // 隐藏文本框并允许输入
+      // text.style('display', 'none');
+ 
+      // // 当双击或失去焦点时提交
+      // text.on('blur', function() {
+      //   text.remove();
+      // });
+ 
+      // // 双击时显示文本框
+      // d3.select(this)
+      // .on('click', function(e) {
+      //   e.stopPropagation();
+      // });
+      // this.svg.on('click', function() {
+      //   text.style('display', 'none');
+      // });
+      // text.style('display', null);
+    },
+    bindRectTextEventListener() {
+      const that = this
+      console.log('zheshi', d3.select('rect#textarea_rect'))
+      d3.select('g#textarea_g')
+      .on('click', function (event) {
+        event.stopPropagation();
+        event.preventDefault();
+        
+        console.log('点击了rect', event.target.id)
+        that.clickRectId = 'textarea_g'
+        console.log(111, d3.select(`g#${that.clickRectId} rect#textarea_rect`))
+        d3.select(`g#textarea_g rect#textarea_rect`).attr('display', 'block')
+
+        const shape_controller2 = d3.selectAll('g#textarea_g rect.shape_controller')
+        for (let i = 0; i < shape_controller2._groups[0].length; i++) {
+            if(i === 0) {
+              d3.select('g#textarea_g rect.shape_controller.n.w').attr('display', `block`)
+            }
+            if(i === 1) {
+              d3.select('g#textarea_g rect.shape_controller.n.e').attr('display', `block`)
+            }
+            if(i === 2) {
+              d3.select('g#textarea_g rect.shape_controller.s.w').attr('display', `block`)
+            }
+            if(i === 3) {
+              d3.select('g#textarea_g rect.shape_controller.s.e').attr('display', `block`)
+            }
+        }
+        // 给rect四周添加四个控制点
+        that.drawControls(that.clickRectId)
+      }).on('dblclick',function(event) {
+        console.log('你双击了输入框1', event)
+        // 双击后可输入
+        document.getElementById('textarea-parent-wrap').style.cursor = `default`
+        document.getElementById('auto-input-textarea').style.cursor = `default`
+        document.getElementById('auto-input-textarea').style.display = `block`
+        document.getElementById('auto-input-textarea').style.width = `100%`
+        document.getElementById('auto-input-textarea').style.height = `100%`
+        document.getElementById('auto-input-textarea').disabled = false;
+        document.getElementById('textarea-value-wrap').style.display = `none`
+        const textarea = document.getElementById('auto-input-textarea')
+        console.log(textarea.value)
+        // 设置文本选中
+        textarea.select();
+        textarea.selectionStart = textarea.value.length
+        document.getElementById('auto-input-textarea').focus()
+      }).call(
+          this.drag('textarea_g', 'rect#textarea_rect')
+      )
+    },
+    // 控制点-矫正位置
+    controlsCorrectedPosition(parentNodeId, height) {
+      console.log(111, parentNodeId)
+      const se_x = d3.select(`g#${parentNodeId} rect.shape_controller.s.e`)._groups[0][0].transform.animVal[0].matrix.e
+      const sw_x = d3.select(`g#${parentNodeId} rect.shape_controller.s.w`)._groups[0][0].transform.animVal[0].matrix.e
+      console.log('---height---', height)
+      // 左下角和右下角两个控制点的位置矫正
+      d3.select(`g#${parentNodeId} rect.shape_controller.s.w`).attr('transform', `translate(${sw_x},${height - 3})`)
+      d3.select(`g#${parentNodeId} rect.shape_controller.s.e`).attr('transform', `translate(${se_x},${height - 3})`)
     }
   }
 }
@@ -992,6 +1782,7 @@ export default {
 <style>
 #treeSvg {
   border: solid 1px #e5dfdf;
+  z-index: 10;
 }
 
 .label-container {
@@ -1075,8 +1866,47 @@ export default {
   fill: none;
   stroke-width: 1.5px;
 }
+#auto-input-textarea {
+  font-size: 14px;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  word-break: break-all;
+  width: 87%;
+  overflow: auto;
+  resize: none;
+  border: none;
+  background: transparent;
+  outline: none;
+}
+#textarea-value-wrap{
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+  font-weight: normal;
+  font-family: monospace;
+  text-rendering: auto;
+  color: fieldtext;
+  letter-spacing: normal;
+  word-spacing: normal;
+  line-height: normal;
+  text-transform: none;
+  text-indent: 0px;
+  text-shadow: none;
+  text-align: start;
+  appearance: auto;
+  -webkit-rtl-ordering: logical;
+  column-count: initial !important;
+  margin: 0em;
+  padding: 2px;
+}
 </style>
 <style scoped>
+#tree-container {
+  position: relative;
+}
 .tooltip {
      position: absolute;
      font-size: 12px;
@@ -1086,9 +1916,27 @@ export default {
      cursor: pointer;
      display: none;
      padding:10px;
+     z-index: 100;
  }
  
 .tooltip>div {
      padding: 10px;
+ }
+ 
+ #gridSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+ }
+ .shape_controller:hover {
+  fill: #067bef;
+ }
+ .shape_controller {
+  cursor: nesw-resize;
+ }
+ .coordinate-tooltip{
+  position: absolute;
+  top: 0px;
+  left: 0px;
  }
 </style>
