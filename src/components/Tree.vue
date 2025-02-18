@@ -1770,7 +1770,7 @@ export default {
       console.log(111, parentNodeId)
       const se_x = d3.select(`g#${parentNodeId} rect.shape_controller.s.e`)._groups[0][0].transform.animVal[0].matrix.e
       const sw_x = d3.select(`g#${parentNodeId} rect.shape_controller.s.w`)._groups[0][0].transform.animVal[0].matrix.e
-      console.log('---height---', height)
+      // console.log('---height---', height)
       // 左下角和右下角两个控制点的位置矫正
       d3.select(`g#${parentNodeId} rect.shape_controller.s.w`).attr('transform', `translate(${sw_x},${height - 3})`)
       d3.select(`g#${parentNodeId} rect.shape_controller.s.e`).attr('transform', `translate(${se_x},${height - 3})`)
