@@ -11,7 +11,7 @@ import store from './store'
 Vue.config.productionTip = false
 
 Vue.use(ElementUI); 
-// 将 SvgIcon 组件注册为全局组件
+// 将 SvgIcon 组件注册为全局组件 --
 Vue.component('svg-icon', SvgIcon)
 
 new Vue({
